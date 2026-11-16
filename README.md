@@ -1,90 +1,44 @@
-# DRIP CHECK NAIJA — Browser Starter
+# DRIP CHECK NAIJA
 
-A browser-first prototype scaffold based on the uploaded DRIP CHECK NAIJA Product Blueprint.
+Your style. Your city. Your crown.
 
-## Included in this starter
+This is a browser-first React + TypeScript fashion-game foundation. It runs without credentials in local demo mode, with persistent local outfit presets.
 
-- React + TypeScript + Vite application shell
-- Responsive dark fashion-game interface
-- Avatar Studio with selectable skin tone, hair, tops, bottoms, shoes and accessories
-- Local browser saving for the current outfit (`localStorage`)
-- Phaser 3 Drip City starter plaza with WASD / arrow-key movement
-- Placeholder Battles, Wardrobe and Profile screens
-- Mobile-responsive layout
+## What works now
 
-## Requirements
+- Mobile-first navigation, dashboard, Studio, Battles, Wardrobe, Profile and Drip City teaser
+- Layered avatar Studio with independent hairstyles, hair colours, expressions, skin tones, tops, bottoms, sneakers, chains, earrings, glasses, watches and bags
+- Separate femme and masc configurations, front/side/back views and four facial expressions
+- Item metadata with compatibility rules; changing an item changes only that layer
+- Reset, randomize, named outfit save/load/rename/delete, separated by character and persisted in local storage
+- Demo battle entry state plus one-vote UI state; the player entry cannot be voted for
+- Supabase migration, seed catalog, RLS baseline and documented trust boundaries
 
-- Node.js 20.19+ or 22.12+
-- npm
-- A modern browser (Chrome, Edge, Firefox or Safari)
+## Run
 
-## Run locally
+Requirements: Node.js 20.19+ or 22.12+ and npm.
 
-1. Extract this ZIP.
-2. Open a terminal in the `drip-check-naija-starter` folder.
-3. Install packages:
+1. Run npm install.
+2. Run npm run dev.
+3. Open the URL printed by Vite.
 
-   ```bash
-   npm install
-   ```
+For production, run npm run build then npm run preview.
 
-4. Start the development server:
+Copy .env.example to .env.local only when connecting Supabase. Vite variables must contain only the public URL and anon key. Never expose service-role keys.
 
-   ```bash
-   npm run dev
-   ```
+## Important boundaries
 
-5. Open the local URL printed by Vite (usually `http://localhost:5173`).
+The demo uses browser storage, so it is intentionally not authoritative. Currency, ownership, purchases, submissions, votes, rewards and final scoring must be implemented via server-side handlers/RPCs. The migration disables direct browser writes for those sensitive tables.
 
-## Production build
+The character art is temporary vector artwork, not final production-quality art. The renderer and catalog are ready to receive final transparent SVG/PNG layers; see docs/ASSET_PIPELINE.md.
 
-```bash
-npm run build
-npm run preview
-```
+## Deployment
 
-The production files are created in `dist/`. Deploy that folder to Cloudflare Pages, Netlify or another static host.
+Deploy the generated dist directory to Cloudflare Pages, Netlify, or another static host. Add a separate trusted API/server runtime before enabling economic or competitive gameplay. Apply supabase/migrations and supabase/seed.sql through the Supabase CLI or dashboard first.
 
-## Project structure
+## Known limitations / next work
 
-```text
-drip-check-naija-starter/
-├── public/
-├── src/
-│   ├── components/
-│   │   └── PhaserWorld.tsx
-│   ├── game/
-│   ├── App.tsx
-│   ├── main.tsx
-│   └── styles.css
-├── index.html
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
-```
-
-## Important: prototype boundaries
-
-This is a runnable frontend starter, not a finished online game. It does **not** yet include:
-- Real user registration or login
-- Supabase database, authentication or realtime configuration
-- Server-authoritative inventory, currency, voting or rewards
-- Real multiplayer presence or chat
-- Production avatar artwork / layered sprite assets
-- Payment integration, moderation tools or anti-cheat
-
-The starter saves the outfit only in the current browser. Do not use client-side state as the authority for player balances, item ownership, votes or battle results.
-
-## Recommended next development stages
-
-1. Replace the illustrative SVG avatar with a consistent layered sprite pipeline.
-2. Add Supabase Auth and PostgreSQL tables with Row Level Security.
-3. Implement outfit ownership and saved outfit records.
-4. Implement battle themes, submissions, anonymous voting and server-side scoring.
-5. Add a trusted backend for rewards and the immutable wallet transaction ledger.
-6. Expand Drip City with map tiles, animated character sprites and mobile touch controls.
-7. Add moderation, testing, monitoring and production deployment.
-
-## Blueprint alignment
-
-The project follows the blueprint's recommended first milestone: React + TypeScript + Vite, a responsive application shell, a layered-avatar preview, selectable outfit parts, saving/reloading in the browser, and desktop/mobile layouts. The avatar artwork in this starter is deliberately illustrative; replace it with production art before launch.
+- No Supabase client or authentication flow is connected until public environment values are supplied.
+- Battle voting, wallet values and submissions are demo-only UI states; trusted operations are not yet implemented.
+- The legacy Phaser component remains in the repository but is not loaded; Drip City is deliberately deferred until the core online loops are connected.
+- Install dependencies before running type-check/build; this workspace currently does not contain node_modules.
