@@ -81,3 +81,31 @@ export const defaultLooks: Record<Character, Look> = {
 
 export const itemFor = (id: string) => items.find((item) => item.id === id);
 export const optionsFor = (slot: ItemSlot, character: Character) => items.filter((item) => item.slot === slot && item.characters.includes(character));
+
+export function normalizeLook(value: Partial<Look> & { accessory?: string } | undefined, character: Character): Look {
+  const defaults = defaultLooks[character];
+  const accessory = value?.accessory;
+  const supported = (slot: ItemSlot, id: string | undefined, fallback: string) => id && optionsFor(slot, character).some((item) => item.id === id) ? id : fallback;
+  const hair = supported("hair", value?.hair, defaults.hair);
+  const skin = value?.skin && SKINS.includes(value.skin) ? value.skin : defaults.skin;
+  const hairColor = value?.hairColor && HAIR_COLOURS.includes(value.hairColor)
+    ? value.hairColor
+    : itemFor(hair)?.color
+      ? itemFor(hair)?.color ?? defaults.hairColor
+      : defaults.hairColor;
+  return {
+    skin,
+    hair,
+    hairColor,
+    top: supported("top", value?.top, defaults.top),
+    bottom: supported("bottom", value?.bottom, defaults.bottom),
+    shoes: supported("shoes", value?.shoes, defaults.shoes),
+    chain: supported("chain", value?.chain ?? (accessory === "acc-chain" ? "chain-gold" : undefined), defaults.chain),
+    earrings: supported("earrings", value?.earrings, defaults.earrings),
+    glasses: supported("glasses", value?.glasses ?? (accessory === "acc-glasses" ? "glasses-shades" : undefined), defaults.glasses),
+    watch: supported("watch", value?.watch, defaults.watch),
+    bag: supported("bag", value?.bag ?? (accessory === "acc-bag" ? "bag-crossbody" : undefined), defaults.bag),
+    expression: ["normal", "happy", "serious", "surprised"].includes(value?.expression ?? "") ? value!.expression! : defaults.expression,
+    view: ["front", "side", "back"].includes(value?.view ?? "") ? value!.view! : defaults.view,
+  };
+}

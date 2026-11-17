@@ -1,19 +1,20 @@
-import type { Character, Look } from "./catalog";
+import type { Character, Item, Look } from "./catalog";
 import { itemFor } from "./catalog";
 
-type Props = { character: Character; look: Look; compact?: boolean };
+type Props = { character: Character; look: Look; compact?: boolean; catalogItems?: readonly Item[] };
 const line = "#30243A";
 
-export default function AvatarRenderer({ character, look, compact = false }: Props) {
-  const hair = itemFor(look.hair);
-  const top = itemFor(look.top);
-  const bottom = itemFor(look.bottom);
-  const shoes = itemFor(look.shoes);
-  const chain = itemFor(look.chain);
-  const earrings = itemFor(look.earrings);
-  const glasses = itemFor(look.glasses);
-  const watch = itemFor(look.watch);
-  const bag = itemFor(look.bag);
+export default function AvatarRenderer({ character, look, compact = false, catalogItems }: Props) {
+  const resolveItem = (id: string) => catalogItems?.find((item) => item.id === id) ?? itemFor(id);
+  const hair = resolveItem(look.hair);
+  const top = resolveItem(look.top);
+  const bottom = resolveItem(look.bottom);
+  const shoes = resolveItem(look.shoes);
+  const chain = resolveItem(look.chain);
+  const earrings = resolveItem(look.earrings);
+  const glasses = resolveItem(look.glasses);
+  const watch = resolveItem(look.watch);
+  const bag = resolveItem(look.bag);
   const side = look.view === "side";
   const back = look.view === "back";
   const femme = character === "femme";
