@@ -28,7 +28,7 @@ The header/account page reports demo or configured state. A URL and safe key are
 
 ## 3. Apply the database changes
 
-Review the new ordered migration before applying it. It is forward-only and adds account tables/policies while converting the existing text fashion-item key to a UUID plus unique slug and preserving the old slug values and inventory references. It does not drop user rows or replace the existing initial migration.
+Review the ordered migrations before applying them. `202611160001_supabase_backend_foundation.sql` adds the account tables/policies while converting the existing text fashion-item key to a UUID plus unique slug and preserving the old slug values and inventory references. `202611180001_drip_city_social.sql` adds Drip City public profile/showcase views, opt-in public avatar display, and owner-validated social RPCs. These are forward-only migrations; they do not replace the existing initial migration.
 
 With the Supabase CLI installed and authenticated, link the intended project and review pending migrations before pushing:
 
@@ -40,7 +40,7 @@ supabase db push --dry-run
 supabase db push
 ```
 
-Alternatively, run `supabase/migrations/202611160001_supabase_backend_foundation.sql` in the project SQL editor after the existing initial migration, then run `supabase/seed.sql`. Apply the seed only after the migration. The seed contains public zero-price catalogue examples; it creates no user inventory or currency. Verify the migration history and table definitions in the dashboard. Do not run these commands against a production project without reviewing the target and current schema first.
+Alternatively, run the SQL files in the exact order above in the project SQL editor, then run `supabase/seed.sql`. Apply the seed only after the migrations. The seed contains public zero-price catalogue examples; it creates no user inventory or currency. Verify the migration history and table definitions in the dashboard. Do not run these commands against a production project without reviewing the target and current schema first.
 
 ## 4. Configure email authentication
 
@@ -55,11 +55,12 @@ Use the Account button to create an account, confirm email if requested, sign in
 ## 5. Exercise the connected features
 
 - The Account page reads active catalogue rows and the signed-in user's inventory.
-- Profile and avatar rows are owner-scoped. Applying a fetched cloud avatar is an explicit action and replaces both local character looks only after confirmation by clicking the button.
+- Profile and avatar table rows are owner-scoped. Applying a fetched cloud avatar is an explicit action and replaces both local character looks only after confirmation by clicking the button. Public profile views exclude email, auth IDs, and country; bio, username, level/XP, and a synthetic public ID are shown. Avatar visibility is off by default and can be changed on the Drip City profile.
 - Saving a new outfit writes the local copy first, then syncs it for an authenticated user. A failed request leaves the local copy intact and surfaces a retryable cloud error.
 - Cloud outfits can be loaded, renamed, updated from the current Studio look for that character, and deleted. These actions update the cloud row; failed writes leave the previous saved version intact.
 - Existing local outfits are not uploaded on sign-in. In Wardrobe, use **Sync to cloud** on each local outfit to import it. IDs are stable UUIDs and the upsert key avoids duplicate imports of the same local outfit.
 - Signed-out users continue using the same local Studio and wardrobe.
+- Drip City discovery uses bounded public profile/showcase reads. Follows, unfollows, likes, and connection lists require authentication. Showcase publishing/removal is owner-checked by database RPC; local drafts are excluded and item availability is checked server-side.
 
 ## 6. Check row-level security
 
@@ -67,10 +68,11 @@ The repository has no configured project or local Supabase stack, so RLS has not
 
 For a manual check, create two test users through the app and use separate browser profiles:
 
-1. As User A, save an outfit and avatar and edit the profile.
-2. Sign in as User B. Confirm A's outfit, avatar, profile, and inventory do not appear in the client.
+1. As User A, save an outfit and avatar, edit the profile, and explicitly opt in to public avatar display.
+2. Sign in as User B. Confirm A's saved outfits and inventory remain private; the public profile view exposes only its documented fields, and only the selected opt-in avatar look.
 3. Use User A and User B sessions through the public client to attempt a write to `fashion_items` and `player_inventory`; both must be denied. Confirm anonymous and authenticated reads return active catalogue items only.
 4. As each user, create, load, rename, update from Studio, and delete an outfit; verify the changes are visible only to that owner.
-5. Confirm the trusted profile fields `level` and `xp` cannot be changed through the browser client.
+5. Confirm the trusted profile fields `level` and `xp` cannot be changed through the browser client. Check that direct reads/writes to `player_follows`, `outfit_showcases`, and `outfit_likes` are denied.
+6. Exercise follow/unfollow, duplicate follow, self-follow, like/unlike, duplicate like, self-like, publish/remove, publish another user's outfit, and publish a paid item without inventory. Confirm public counts reflect only database rows and local drafts never appear in the public view.
 
 Keep the test accounts and project separate from production data. The current public catalogue is free/demo content; there is no inventory grant, economy, battle submission, or voting path.

@@ -3,10 +3,11 @@ import type { Session } from "@supabase/supabase-js";
 import AvatarRenderer from "./avatar/AvatarRenderer";
 import Account from "./components/Account";
 import FashionMall from "./components/FashionMall";
+import DripCity from "./components/DripCity";
 import PlayerInventory from "./components/PlayerInventory";
 import { defaultLooks, HAIR_COLOURS, itemFor, items as studioItems, normalizeLook, optionsFor, SKINS, type Character, type Expression, type ItemSlot, type Look, type Slot, type View } from "./avatar/catalog";
 import { supabase, supabaseConfigError } from "./supabase/client";
-import { deleteOutfit, listActiveFashionItems, listInventory, listOutfits, loadAvatar as loadCloudAvatar, loadOrCreateProfile, looksFromAvatar, mapFashionItem, saveAvatar as saveCloudAvatar, saveOutfit, updateProfile, type ActiveFashionItem, type FashionCatalogueItem, type OutfitPreset, type OwnedFashionItem } from "./supabase/repository";
+import { deleteOutfit, listActiveFashionItems, listInventory, listOutfits, loadAvatar as loadCloudAvatar, loadOrCreateProfile, looksFromAvatar, mapFashionItem, saveAvatar as saveCloudAvatar, saveOutfit, setAvatarPublicDisplay, updateProfile, type ActiveFashionItem, type FashionCatalogueItem, type OutfitPreset, type OwnedFashionItem } from "./supabase/repository";
 import type { Database } from "./supabase/database.types";
 
 type Page = "home" | "studio" | "mall" | "inventory" | "battles" | "wardrobe" | "profile" | "city" | "account";
@@ -78,6 +79,7 @@ export default function App() {
   const [profileState, setProfileState] = useState<RemoteState>("idle");
   const [profileError, setProfileError] = useState("");
   const [avatarCandidate, setAvatarCandidate] = useState<Record<Character, Look> | null>(null);
+  const [avatarPublic, setAvatarPublic] = useState(false);
   const [avatarState, setAvatarState] = useState<RemoteState>("idle");
   const [avatarError, setAvatarError] = useState("");
   const [catalog, setCatalog] = useState<ActiveFashionItem[]>([]);
@@ -140,6 +142,7 @@ export default function App() {
     setCloudOutfitError("");
     setProfile(null);
     setAvatarCandidate(null);
+    setAvatarPublic(false);
     setInventory([]);
     if (!currentUserId || !supabase) {
       setCloudOutfitState("idle");
@@ -178,8 +181,10 @@ export default function App() {
       }
       if (avatarResult.status === "fulfilled") {
         setAvatarCandidate(avatarResult.value ? looksFromAvatar(avatarResult.value) : null);
+        setAvatarPublic(avatarResult.value?.public_display ?? false);
         setAvatarState("ready");
       } else {
+        setAvatarPublic(false);
         setAvatarError(avatarResult.reason instanceof Error ? avatarResult.reason.message : "Could not load your avatar.");
         setAvatarState("error");
       }
@@ -360,11 +365,19 @@ export default function App() {
       const saved = await saveCloudAvatar(currentUserId, character, store.looks);
       if (currentUserRef.current !== currentUserId) return;
       setAvatarCandidate(looksFromAvatar(saved)); setAvatarState("ready"); setAvatarError(""); setNotice("Studio looks saved to your cloud avatar.");
+      setAvatarPublic(saved.public_display);
     } catch (error) {
       if (currentUserRef.current !== currentUserId) return;
       setAvatarError(error instanceof Error ? error.message : "Avatar save failed.");
       setAvatarState("error"); setNotice("Avatar was not saved to the cloud.");
     }
+  };
+  const setAvatarVisibility = async (publicDisplay: boolean) => {
+    if (!currentUserId) throw new Error("Sign in to change avatar visibility.");
+    const requestedUserId = currentUserId;
+    await setAvatarPublicDisplay(publicDisplay);
+    if (currentUserRef.current !== requestedUserId) return;
+    setAvatarPublic(publicDisplay);
   };
   const applyAvatar = () => {
     if (!avatarCandidate) return;
@@ -404,6 +417,7 @@ export default function App() {
     void loadCloudAvatar(requestedUserId).then((value) => {
       if (currentUserRef.current !== requestedUserId) return;
       setAvatarCandidate(value ? looksFromAvatar(value) : null); setAvatarState("ready"); setAvatarError("");
+      setAvatarPublic(value?.public_display ?? false);
     }).catch((error: unknown) => {
       if (currentUserRef.current !== requestedUserId) return;
       setAvatarError(error instanceof Error ? error.message : "Could not load your avatar.");
@@ -470,14 +484,14 @@ export default function App() {
     <header className="topbar"><button className="brand" onClick={() => setPage("home")}><b>DC</b><span>DRIP CHECK <strong>NAIJA</strong><small>YOUR STYLE. YOUR CITY. YOUR CROWN.</small></span></button><div className="status"><i/> {session ? "CLOUD ACCOUNT" : "DEMO MODE"} <b>WALLET OFFLINE</b><button className="account-link" onClick={() => setPage("account")}>{session ? "ACCOUNT" : "SIGN IN"}</button></div></header>
     <div className="layout"><aside className="sidebar"><span className="nav-label">YOUR WORLD</span>{nav.map((link) => <button key={link[0]} className={page === link[0] ? "active" : ""} aria-current={page === link[0] ? "page" : undefined} onClick={() => setPage(link[0])}><b>{link[1]}</b>{link[2]}</button>)}<div className="quote"><b>NO BE EVERYBODY GET DRIP.</b><p>Find your fit. Enter the battle. Own your crown.</p></div></aside>
       <main className="content">
-        {page === "home" && <Home character={character} look={look} studio={() => setPage("studio")} battles={() => setPage("battles")} mall={() => setPage("mall")} inventory={() => setPage("inventory")}/>}
+        {page === "home" && <Home character={character} look={look} studio={() => setPage("studio")} battles={() => setPage("battles")} mall={() => setPage("mall")} inventory={() => setPage("inventory")} city={() => setPage("city")}/>}
         {page === "studio" && <Studio character={character} look={look} slot={slot} saveName={saveName} setCharacter={setCharacter} setSlot={setSlot} setSaveName={setSaveName} update={update} save={save} randomize={randomize} reset={() => { update(structuredClone(defaultLooks[character])); setNotice("Look reset."); }}/>}
         {page === "mall" && <FashionMall catalogue={supabase ? catalog : demoCatalogue} demoMode={!supabase} catalogueState={catalogState} catalogueError={catalogError} retryCatalogue={retryCatalog} character={character} setCharacter={setCharacter} looks={store.looks} signedIn={Boolean(currentUserId)} inventoryState={currentUserId && !accountDataReady ? "loading" : inventoryState} inventoryError={accountDataReady ? inventoryError : ""} ownedSlugs={accountDataReady ? inventory.map((item) => item.id) : []} retryInventory={retryInventory} openAccount={() => setPage("account")} openStudio={() => setPage("studio")}/>}
         {page === "inventory" && <PlayerInventory items={accountDataReady ? inventory : []} demoMode={!supabase} signedIn={Boolean(currentUserId)} state={currentUserId && !accountDataReady ? "loading" : inventoryState} error={accountDataReady ? inventoryError : ""} retry={retryInventory} character={character} setCharacter={setCharacter} look={look} onEquip={equipInventoryItem} onUnequip={unequipInventoryItem} openMall={() => setPage("mall")} openAccount={() => setPage("account")}/>}
         {page === "battles" && <Battles entered={entered} voted={voted} studio={() => setPage("studio")} enter={() => { setEntered(true); setNotice("Your current look has entered Lagos Nightlife."); }} vote={() => { if (voted) setNotice("One vote per battle — yours is locked."); else { setVoted(true); setNotice("Vote counted. Sharp eye!"); } }}/>}
         {page === "wardrobe" && <Wardrobe presets={visiblePresets} character={character} setCharacter={setCharacter} studio={() => setPage("studio")} load={load} rename={rename} remove={remove} update={updatePreset} sync={syncLocalOutfit} connected={Boolean(session && supabase)} state={visibleCloudOutfitState} error={accountDataReady ? cloudOutfitError : ""} busyIds={busyOutfitIds} retry={refreshCloudOutfits}/>}
         {page === "profile" && <Profile handle={store.handle} character={character} look={look} change={(handle) => setStore((data) => ({ ...data, handle }))}/>}
-        {page === "city" && <City studio={() => setPage("studio")}/>}
+        {page === "city" && <DripCity key={currentUserId ?? "guest"} configured={Boolean(supabase)} signedIn={Boolean(currentUserId)} displayName={accountDataReady && profile ? profile.username : store.handle} displayNameIsReal={!supabase || Boolean(accountDataReady && profile)} character={character} look={look} savedOutfits={visiblePresets} myPublicId={accountDataReady ? profile?.public_id ?? null : null} avatarSaved={Boolean(avatarCandidate)} avatarPublic={avatarPublic} catalog={supabase ? catalog : demoCatalogue} openAccount={() => setPage("account")} openStudio={() => setPage("studio")} setNotice={setNotice} onAvatarPublicChange={setAvatarVisibility}/>}
         {page === "account" && <Account configured={Boolean(supabase)} configurationMessage={supabaseConfigError} session={session} authLoading={authLoading} authBusy={authBusy} authMessage={authMessage} authError={authError} signIn={signIn} signUp={signUp} signOut={signOut} continueDemo={() => { setPage("home"); setNotice("Demo mode is ready. Your local outfits are safe."); }} profile={accountDataReady ? profile : null} profileState={currentUserId && !accountDataReady ? "loading" : profileState} profileError={accountDataReady ? profileError : ""} retryProfile={retryProfile} saveProfile={saveProfile} avatar={accountDataReady ? avatarCandidate : null} avatarState={currentUserId && !accountDataReady ? "loading" : avatarState} avatarError={accountDataReady ? avatarError : ""} retryAvatar={retryAvatar} saveAvatar={saveAvatar} applyAvatar={applyAvatar} catalog={catalog} catalogState={catalogState} catalogError={catalogError} retryCatalog={retryCatalog} inventory={accountDataReady ? inventory : []} inventoryState={currentUserId && !accountDataReady ? "loading" : inventoryState} inventoryError={accountDataReady ? inventoryError : ""} retryInventory={retryInventory} cloudOutfitCount={visibleCloudOutfits.length}/>}
         <footer><span>DRIP CHECK NAIJA © 2026</span><span>BUILT FOR THE CULTURE. MADE FOR THE CROWN.</span></footer>
       </main>
@@ -487,7 +501,7 @@ export default function App() {
   </div>;
 }
 
-function Home({ character, look, studio, battles, mall, inventory }: { character: Character; look: Look; studio: () => void; battles: () => void; mall: () => void; inventory: () => void }) { return <><Title eyebrow="DRIP CHECK NAIJA / HOME" heading="Your crown is waiting." copy="Dress sharp. Battle hard. The city is watching."/><section className="home-grid"><article className="hero"><div><span className="eyebrow">TODAY'S FIT</span><h2>Ready to turn heads?</h2><p>Build a look that makes the group chat pause.</p><Action onClick={studio}>OPEN STUDIO →</Action></div><AvatarRenderer character={character} look={look}/></article><article className="tile"><span className="eyebrow">FASHION MALL</span><h2>Fresh pieces, Naija energy.</h2><p>Find a fit and try it on before you commit.</p><button className="text-btn" onClick={mall}>BROWSE THE MALL →</button></article><article className="tile"><span className="eyebrow">PLAYER INVENTORY</span><h2>Your pieces, your rules.</h2><p>See verified cloud items or keep styling in demo mode.</p><button className="text-btn" onClick={inventory}>OPEN INVENTORY →</button></article><article className="tile battle-tile"><span className="eyebrow">FEATURED BATTLE</span><h2>Lagos Nightlife</h2><p>After-dark drip only. Na who wear am better?</p><button className="text-btn" onClick={battles}>VIEW BATTLE →</button></article><article className="tile"><span className="eyebrow">DAILY CHALLENGE</span><h2>Wear one bright colour.</h2><p>Complete it in Studio for a demo badge.</p><b className="mint">● AVAILABLE NOW</b></article></section><section className="activity"><span className="eyebrow">AROUND THE CITY</span><p><b>Lola Luxe</b> just earned the <b>Night Owl</b> badge. <small>8m</small></p><p><b>Timi Threads</b> saved a new streetwear look. <small>26m</small></p></section></>; }
+function Home({ character, look, studio, battles, mall, inventory, city }: { character: Character; look: Look; studio: () => void; battles: () => void; mall: () => void; inventory: () => void; city: () => void }) { return <><Title eyebrow="DRIP CHECK NAIJA / HOME" heading="Your crown is waiting." copy="Dress sharp. Battle hard. The city is watching."/><section className="home-grid"><article className="hero"><div><span className="eyebrow">TODAY'S FIT</span><h2>Ready to turn heads?</h2><p>Build a look that makes the group chat pause.</p><Action onClick={studio}>OPEN STUDIO →</Action></div><AvatarRenderer character={character} look={look}/></article><article className="tile"><span className="eyebrow">DRIP CITY</span><h2>Your style, your neighbourhood.</h2><p>Explore a single-player demo, discover public players, and browse outfits players choose to share.</p><button className="text-btn" onClick={city}>ENTER DRIP CITY →</button></article><article className="tile"><span className="eyebrow">FASHION MALL</span><h2>Fresh pieces, Naija energy.</h2><p>Find a fit and try it on before you commit.</p><button className="text-btn" onClick={mall}>BROWSE THE MALL →</button></article><article className="tile"><span className="eyebrow">PLAYER INVENTORY</span><h2>Your pieces, your rules.</h2><p>See verified cloud items or keep styling in demo mode.</p><button className="text-btn" onClick={inventory}>OPEN INVENTORY →</button></article><article className="tile battle-tile"><span className="eyebrow">BATTLE CORNER · DEMO</span><h2>Lagos Nightlife</h2><p>Battle entry and voting are demo-only and are not saved to a live competition.</p><button className="text-btn" onClick={battles}>VIEW BATTLE →</button></article></section><section className="activity"><span className="eyebrow">CITY STATUS</span><p>Live activity, online status, battle placements, and messages are not connected yet. The Drip City demo is clearly labelled.</p></section></>; }
 
 function Studio({ character, look, slot, saveName, setCharacter, setSlot, setSaveName, update, save, randomize, reset }: { character: Character; look: Look; slot: Slot; saveName: string; setCharacter: (v: Character) => void; setSlot: (v: Slot) => void; setSaveName: (v: string) => void; update: (v: Look) => void; save: () => void; randomize: () => void; reset: () => void }) {
   const options = useMemo(() => isItemSlot(slot) ? optionsFor(slot, character) : [], [slot, character]);
@@ -533,5 +547,4 @@ function PresetCard({ preset, load, rename, remove, update, sync, connected, bus
   const saveName = () => { if (!name.trim()) return; rename(preset, name); setEditing(false); };
   return <article className="preset-card"><AvatarRenderer character={preset.character} look={preset.look} compact/>{editing ? <div className="rename-form"><input aria-label="New outfit name" value={name} onChange={(event) => setName(event.target.value)} maxLength={28}/><button className="text-btn" disabled={busy} onClick={saveName}>SAVE NAME</button><button className="text-btn" onClick={() => { setName(preset.name); setEditing(false); }}>CANCEL</button></div> : <><h3>{preset.name}</h3><p>{preset.character === "femme" ? "Femme" : "Masc"} · {preset.source === "cloud" ? "cloud" : "this device"}</p><div className="preset-actions"><button className="text-btn" onClick={() => load(preset)}>LOAD</button><button className="text-btn" disabled={busy} onClick={() => update(preset)}>UPDATE LOOK</button><button className="text-btn" disabled={busy} onClick={() => setEditing(true)}>RENAME</button>{connected && preset.source === "local" && <button className="text-btn" disabled={busy} onClick={() => sync(preset)}>{busy ? "SYNCING…" : "SYNC TO CLOUD"}</button>}<button className="text-btn delete-action" disabled={busy} onClick={() => remove(preset)}>{busy ? "SAVING…" : "DELETE"}</button></div></>}</article>;
 }
-function Profile({ handle, character, look, change }: { handle: string; character: Character; look: Look; change: (x: string) => void }) { return <><Title eyebrow="DRIP CHECK NAIJA / PROFILE" heading="Your style reputation." copy="Your stats will grow with every battle and every bold look."/><section className="profile"><div><AvatarRenderer character={character} look={look}/></div><article><label className="eyebrow" htmlFor="handle">PLAYER HANDLE</label><input id="handle" value={handle} onChange={(e) => change(e.target.value)} maxLength={20}/><p>New face. Fresh drip. Lagos, Nigeria.</p><section><b>01<small>LEVEL</small></b><b>00<small>BATTLES</small></b><b>00<small>WINS</small></b><b>—<small>COINS</small></b></section></article></section></>; }
-function City({ studio }: { studio: () => void }) { return <><Title eyebrow="DRIP CHECK NAIJA / DRIP CITY" heading="The city is your runway." copy="A compact social plaza is on the way. Start with a look worth seeing."/><section className="city"><div><strong>DRIP<br/>CITY</strong><i>✦</i></div><article><b className="mint">● LOCAL DEMO</b><h2>Plaza opening soon.</h2><p>The social world is waiting until Studio and Battles are connected to real player data. Your avatar setup is ready.</p><Action onClick={studio}>BUILD YOUR LOOK →</Action></article></section></>; }
+function Profile({ handle, character, look, change }: { handle: string; character: Character; look: Look; change: (x: string) => void }) { return <><Title eyebrow="DRIP CHECK NAIJA / PROFILE" heading="Your local profile." copy="A device-only display name and your current Studio avatar."/><section className="profile"><div><AvatarRenderer character={character} look={look}/></div><article><label className="eyebrow" htmlFor="handle">DEMO DISPLAY NAME</label><input id="handle" value={handle} onChange={(e) => change(e.target.value)} maxLength={20}/><p>This name is saved only on this device. Manage your public cloud profile in Account or Drip City.</p></article></section></>; }

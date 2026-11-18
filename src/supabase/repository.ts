@@ -11,6 +11,20 @@ export type FashionCatalogueItem = Item & {
   thumbnailPath: string | null;
 };
 export type OwnedFashionItem = FashionCatalogueItem & { acquiredAt: string; source: string };
+export type PublicPlayer = Database["public"]["Views"]["public_player_profiles"]["Row"];
+export type PublicShowcaseRow = Database["public"]["Views"]["public_outfit_showcases"]["Row"];
+export type PublicShowcase = {
+  id: string;
+  playerPublicId: string;
+  username: string;
+  title: string;
+  character: Character;
+  look: Look;
+  publishedAt: string;
+  likeCount: number;
+  viewerLiked: boolean;
+};
+export type PlayerConnection = Database["public"]["Functions"]["get_player_connections"]["Returns"][number];
 type ProfileRow = Database["public"]["Tables"]["player_profiles"]["Row"];
 type AvatarRow = Database["public"]["Tables"]["avatars"]["Row"];
 type FashionRow = Database["public"]["Tables"]["fashion_items"]["Row"];
@@ -109,6 +123,98 @@ export async function listOutfits(): Promise<OutfitPreset[]> {
   return data.map(outfitFromRow);
 }
 
+export async function listPublicPlayers(search = "", offset = 0, limit = 24): Promise<PublicPlayer[]> {
+  const term = search.trim().replace(/[\\%_]/g, "\\$&");
+  let query = client().from("public_player_profiles").select("*");
+  if (term) query = query.ilike("username", `%${term}%`);
+  const { data, error } = await query
+    .order("follower_count", { ascending: false })
+    .order("username", { ascending: true })
+    .range(offset, offset + limit - 1);
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function loadPublicProfile(publicId: string): Promise<PublicPlayer | null> {
+  const { data, error } = await client().from("public_player_profiles")
+    .select("*").eq("public_id", publicId).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export function publicAvatarFromProfile(profile: PublicPlayer): { character: Character; look: Look } | null {
+  const character = profile.avatar_character_type;
+  const config = profile.avatar_appearance_config;
+  if (!character || !config) return null;
+  return { character, look: lookFromJson(config, {}, character) };
+}
+
+export async function listPublicShowcases(playerPublicId?: string, offset = 0, limit = 12): Promise<PublicShowcase[]> {
+  let query = client().from("public_outfit_showcases").select("*");
+  if (playerPublicId) query = query.eq("player_public_id", playerPublicId);
+  const { data, error } = await query
+    .order("like_count", { ascending: false })
+    .order("published_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+  if (error) throw new Error(error.message);
+  return data.map(showcaseFromRow);
+}
+
+function showcaseFromRow(row: PublicShowcaseRow): PublicShowcase {
+  return {
+    id: row.id,
+    playerPublicId: row.player_public_id,
+    username: row.username,
+    title: row.title,
+    character: row.character_type,
+    look: lookFromJson(row.appearance_config, row.equipped_items, row.character_type),
+    publishedAt: row.published_at,
+    likeCount: row.like_count,
+    viewerLiked: row.viewer_liked,
+  };
+}
+
+export async function getPlayerConnections(publicId: string, type: "followers" | "following"): Promise<PlayerConnection[]> {
+  const { data, error } = await client().rpc("get_player_connections", {
+    target_public_id: publicId,
+    connection_type: type,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function setPlayerFollow(publicId: string, follow: boolean): Promise<void> {
+  const { error } = await client().rpc("set_player_follow", {
+    target_public_id: publicId,
+    should_follow: follow,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function setShowcaseLike(showcaseId: string, liked: boolean): Promise<void> {
+  const { error } = await client().rpc("set_outfit_showcase_like", {
+    target_showcase_id: showcaseId,
+    should_like: liked,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function publishShowcase(outfitId: string, title: string): Promise<string> {
+  const { data, error } = await client().rpc("publish_outfit_showcase", {
+    target_outfit_id: outfitId,
+    showcase_title: title,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function removeShowcase(showcaseId: string): Promise<void> {
+  const { error } = await client().rpc("remove_outfit_showcase", {
+    target_showcase_id: showcaseId,
+  });
+  if (error) throw new Error(error.message);
+}
+
 export async function saveOutfit(preset: OutfitPreset, userId: string): Promise<OutfitPreset> {
   const { data, error } = await client().from("outfits")
     .upsert(outfitToRow(preset, userId), { onConflict: "id" })
@@ -163,6 +269,13 @@ export async function saveAvatar(userId: string, character: Character, looks: Re
   }, { onConflict: "user_id" }).select("*").single();
   if (error) throw new Error(error.message);
   return data;
+}
+
+export async function setAvatarPublicDisplay(publicDisplay: boolean): Promise<void> {
+  const { error } = await client().rpc("set_avatar_public_display", {
+    should_be_public: publicDisplay,
+  });
+  if (error) throw new Error(error.message);
 }
 
 export function looksFromAvatar(row: AvatarRow): Record<Character, Look> | null {

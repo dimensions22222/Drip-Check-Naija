@@ -6,15 +6,15 @@ export type Database = {
   public: {
     Tables: {
       player_profiles: {
-        Row: { user_id: string; username: string; bio: string | null; country: string | null; level: number; xp: number; created_at: string; updated_at: string };
+        Row: { user_id: string; public_id: string; username: string; bio: string | null; country: string | null; level: number; xp: number; created_at: string; updated_at: string };
         Insert: { user_id: string; username: string; bio?: string | null; country?: string | null; level?: number; xp?: number; created_at?: string; updated_at?: string };
         Update: { user_id?: string; username?: string; bio?: string | null; country?: string | null; level?: number; xp?: number; created_at?: string; updated_at?: string };
         Relationships: [];
       };
       avatars: {
-        Row: { user_id: string; character_type: Character; appearance_config: Json; created_at: string; updated_at: string };
-        Insert: { user_id: string; character_type: Character; appearance_config?: Json; created_at?: string; updated_at?: string };
-        Update: { user_id?: string; character_type?: Character; appearance_config?: Json; created_at?: string; updated_at?: string };
+        Row: { user_id: string; character_type: Character; appearance_config: Json; public_display: boolean; created_at: string; updated_at: string };
+        Insert: { user_id: string; character_type: Character; appearance_config?: Json; public_display?: boolean; created_at?: string; updated_at?: string };
+        Update: { user_id?: string; character_type?: Character; appearance_config?: Json; public_display?: boolean; created_at?: string; updated_at?: string };
         Relationships: [];
       };
       fashion_items: {
@@ -35,9 +35,43 @@ export type Database = {
         Update: { id?: string; user_id?: string; name?: string; character_type?: Character; equipped_items?: Json; appearance_config?: Json; created_at?: string; updated_at?: string };
         Relationships: [];
       };
+      player_follows: {
+        Row: { follower_id: string; following_id: string; created_at: string };
+        Insert: { follower_id: string; following_id: string; created_at?: string };
+        Update: { follower_id?: string; following_id?: string; created_at?: string };
+        Relationships: [];
+      };
+      outfit_showcases: {
+        Row: { id: string; owner_id: string; outfit_id: string; title: string; published_at: string };
+        Insert: { id?: string; owner_id: string; outfit_id: string; title: string; published_at?: string };
+        Update: { id?: string; owner_id?: string; outfit_id?: string; title?: string; published_at?: string };
+        Relationships: [];
+      };
+      outfit_likes: {
+        Row: { showcase_id: string; user_id: string; created_at: string };
+        Insert: { showcase_id: string; user_id: string; created_at?: string };
+        Update: { showcase_id?: string; user_id?: string; created_at?: string };
+        Relationships: [];
+      };
     };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Views: {
+      public_player_profiles: {
+        Row: { public_id: string; username: string; bio: string | null; level: number; xp: number; avatar_character_type: Character | null; avatar_appearance_config: Json | null; follower_count: number; following_count: number; viewer_follows: boolean };
+        Relationships: [];
+      };
+      public_outfit_showcases: {
+        Row: { id: string; player_public_id: string; username: string; title: string; character_type: Character; equipped_items: Json; appearance_config: Json; published_at: string; like_count: number; viewer_liked: boolean };
+        Relationships: [];
+      };
+    };
+    Functions: {
+      set_player_follow: { Args: { target_public_id: string; should_follow: boolean }; Returns: undefined };
+      set_outfit_showcase_like: { Args: { target_showcase_id: string; should_like: boolean }; Returns: undefined };
+      get_player_connections: { Args: { target_public_id: string; connection_type: string }; Returns: { public_id: string; username: string }[] };
+      publish_outfit_showcase: { Args: { target_outfit_id: string; showcase_title: string }; Returns: string };
+      remove_outfit_showcase: { Args: { target_showcase_id: string }; Returns: undefined };
+      set_avatar_public_display: { Args: { should_be_public: boolean }; Returns: undefined };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

@@ -6,7 +6,7 @@ This is a browser-first React + TypeScript fashion-game foundation. It runs with
 
 ## What works now
 
-- Mobile-first navigation, dashboard, Studio, Battles, Wardrobe, Profile and Drip City teaser
+- Mobile-first navigation, dashboard, Studio, Battles, Wardrobe, Profile and Drip City
 - Layered avatar Studio with independent hairstyles, hair colours, expressions, skin tones, tops, bottoms, sneakers, chains, earrings, glasses, watches and bags
 - Fashion Mall with Studio-category filters, item search, newest/price sorting, cloud ownership states, and a reversible preview on the current avatar
 - Player Inventory with verified cloud-owned items, category/search filters, equip and unequip actions wired to the persistent local Studio look
@@ -17,7 +17,10 @@ This is a browser-first React + TypeScript fashion-game foundation. It runs with
 - Owner-scoped cloud profile/avatar/outfits, public active catalogue reads and owner-only inventory reads
 - Explicit per-outfit local-to-cloud sync; local outfits are not silently imported or discarded
 - Demo battle entry state plus one-vote UI state; the player entry cannot be voted for
-- Supabase migration, seed catalog, RLS baseline and documented trust boundaries
+- Single-player Phaser city map with camera-follow movement, keyboard/touch controls, and clearly labelled Nigerian fashion destinations
+- Public player discovery/search, privacy-curated public profiles, authenticated follows, and a public outfit showcase with authenticated likes
+- Owner-controlled public avatar sharing; private cloud avatars and saved outfits stay private until explicitly shared
+- Supabase migrations, seed catalog, RLS baseline, social RPCs and documented trust boundaries
 
 ## Run
 
@@ -33,13 +36,13 @@ Copy `.env.example` to `.env.local` only when connecting Supabase. Set `VITE_SUP
 
 ## Important boundaries
 
-The app stays usable without Supabase credentials. Browser storage is intentionally not authoritative. Currency, ownership grants, purchases, submissions, votes, rewards and final scoring must be implemented via trusted server-side handlers/RPCs. RLS protects the cloud data; see [docs/BACKEND_SECURITY.md](./docs/BACKEND_SECURITY.md).
+The app stays usable without Supabase credentials. Browser storage is intentionally not authoritative. Currency, ownership grants, purchases, battle submissions, votes, rewards and final scoring must be implemented via trusted server-side handlers/RPCs. RLS protects the cloud data; see [docs/BACKEND_SECURITY.md](./docs/BACKEND_SECURITY.md). Drip City's schema, social security, demo behavior, controls, and multiplayer limitations are documented in [docs/DRIP_CITY.md](./docs/DRIP_CITY.md).
 
-Without valid Supabase settings, the Mall uses the local sample catalogue for temporary try-ons and the Inventory clearly reports demo mode with no permanently owned items. Local Studio looks and saved outfits remain available. With Supabase configured, the public active catalogue is loaded from `fashion_items`; a signed-in player's items are loaded from `player_inventory`. The database must have the migrations and seed applied as described in [docs/SUPABASE_SETUP.md](./docs/SUPABASE_SETUP.md).
+Without valid Supabase settings, Drip City remains explorable as a single-player demo with clearly labelled sample locations, players, and outfits; social interactions are disabled. The Mall uses the local sample catalogue for temporary try-ons and the Inventory clearly reports demo mode with no permanently owned items. Local Studio looks and saved outfits remain available. With Supabase configured, Drip City reads curated public profiles/showcases and uses authenticated database functions for follows, likes, and publishing. The database must have all migrations and the optional seed applied as described in [docs/SUPABASE_SETUP.md](./docs/SUPABASE_SETUP.md).
 
 Purchases are intentionally disabled. This project has no verified server-side purchase endpoint, wallet validation, or atomic inventory grant; catalogue prices are display data only. The browser never deducts currency or inserts into `player_inventory`, and no wallet balance is shown as real.
 
-Apply the ordered migrations and configure Auth before using a connected project. Setup, confirmation redirects, RLS verification and current connectivity status are documented in [docs/SUPABASE_SETUP.md](./docs/SUPABASE_SETUP.md). This repository has not been linked to a Supabase project and no remote migrations have been applied.
+Apply the ordered migrations, configure Auth, and test the RLS policies before using a connected project. Setup, confirmation redirects, RLS verification and current connectivity status are documented in [docs/SUPABASE_SETUP.md](./docs/SUPABASE_SETUP.md). This repository has not been linked to a Supabase project and no remote migrations have been applied.
 
 The character art is temporary vector artwork, not final production-quality art. The renderer and catalog are ready to receive final transparent SVG/PNG layers; see docs/ASSET_PIPELINE.md.
 
@@ -51,5 +54,6 @@ Deploy the generated dist directory to Cloudflare Pages, Netlify, or another sta
 
 - Auth and cloud reads/writes require public Supabase URL/key values and the migrations/seed to be applied.
 - Battle voting, wallet values and submissions are demo-only UI states; trusted operations are not yet implemented.
-- The legacy Phaser component remains in the repository but is not loaded; Drip City is deliberately deferred until the core online loops are connected.
+- Drip City is a single-player world. It has no real-time multiplayer, chat, online presence, live battle data, or activity feed.
+- Follow/showcase database functions require the new social migration to be applied. Paid items require a verified inventory grant before publication; client-side purchase/grant paths remain disabled.
 - The browser catalogue is free/demo content. Inventory grants and item ownership checks for paid/locked content are not implemented.
