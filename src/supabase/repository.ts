@@ -25,6 +25,15 @@ export type PublicShowcase = {
   viewerLiked: boolean;
 };
 export type PlayerConnection = Database["public"]["Functions"]["get_player_connections"]["Returns"][number];
+export type ProgressionDashboard = {
+  profile: { level: number; xp: number; levelXp: number; nextLevelXp: number };
+  streak: { current_streak: number; longest_streak: number; last_login_date: string | null };
+  missions: Array<{ id: string; code: string; scope: "daily" | "weekly"; title: string; description: string; target: number; xpReward: number; progress: number; completed: boolean; completedAt: string | null; claimedAt: string | null; periodKey: string }>;
+  achievements: Array<{ code: string; category: string; name: string; description: string; icon: string; rarity: string | null; unlockedAt: string | null; featured: boolean }>;
+  events: Array<{ eventType: string; xp: number; createdAt: string }>;
+  leaderboard: Array<{ username: string; level: number; xp: number; publicId: string }>;
+  rewards: unknown[];
+};
 type ProfileRow = Database["public"]["Tables"]["player_profiles"]["Row"];
 type AvatarRow = Database["public"]["Tables"]["avatars"]["Row"];
 type FashionRow = Database["public"]["Tables"]["fashion_items"]["Row"];
@@ -189,6 +198,7 @@ export async function setPlayerFollow(publicId: string, follow: boolean): Promis
     should_follow: follow,
   });
   if (error) throw new Error(error.message);
+  if (follow) await recordProgressionActivity("player_followed", publicId);
 }
 
 export async function setShowcaseLike(showcaseId: string, liked: boolean): Promise<void> {
@@ -197,6 +207,7 @@ export async function setShowcaseLike(showcaseId: string, liked: boolean): Promi
     should_like: liked,
   });
   if (error) throw new Error(error.message);
+  if (liked) await recordProgressionActivity("outfit_liked", showcaseId);
 }
 
 export async function publishShowcase(outfitId: string, title: string): Promise<string> {
@@ -205,6 +216,7 @@ export async function publishShowcase(outfitId: string, title: string): Promise<
     showcase_title: title,
   });
   if (error) throw new Error(error.message);
+  await recordProgressionActivity("showcase_published", data);
   return data;
 }
 
@@ -215,12 +227,40 @@ export async function removeShowcase(showcaseId: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export async function getProgressionDashboard(): Promise<ProgressionDashboard> {
+  const { data, error } = await client().rpc("get_progression_dashboard");
+  if (error) throw new Error(error.message);
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("The progression dashboard response was invalid.");
+  }
+  return data as unknown as ProgressionDashboard;
+}
+
+export async function recordProgressionActivity(activityType: string, referenceId = ""): Promise<ProgressionDashboard | null> {
+  const { data, error } = await client().rpc("record_progression_activity", {
+    p_activity_type: activityType,
+    p_reference_id: referenceId,
+  });
+  if (error) {
+    if (activityType === "outfit_saved") return null;
+    throw new Error(error.message);
+  }
+  return data as unknown as ProgressionDashboard;
+}
+
+export async function claimMissionReward(missionId: string): Promise<ProgressionDashboard> {
+  const { data, error } = await client().rpc("claim_mission_reward", { p_mission_id: missionId });
+  if (error) throw new Error(error.message);
+  return data as unknown as ProgressionDashboard;
+}
+
 export async function saveOutfit(preset: OutfitPreset, userId: string): Promise<OutfitPreset> {
   const { data, error } = await client().from("outfits")
     .upsert(outfitToRow(preset, userId), { onConflict: "id" })
     .select("*")
     .single();
   if (error) throw new Error(error.message);
+  await recordProgressionActivity("outfit_saved", data.id);
   return outfitFromRow(data);
 }
 

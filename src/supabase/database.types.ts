@@ -71,6 +71,9 @@ export type Database = {
       publish_outfit_showcase: { Args: { target_outfit_id: string; showcase_title: string }; Returns: string };
       remove_outfit_showcase: { Args: { target_showcase_id: string }; Returns: undefined };
       set_avatar_public_display: { Args: { should_be_public: boolean }; Returns: undefined };
+      get_progression_dashboard: { Args: Record<string, never>; Returns: Json };
+      record_progression_activity: { Args: { p_activity_type: string; p_reference_id?: string }; Returns: Json };
+      claim_mission_reward: { Args: { p_mission_id: string }; Returns: Json };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

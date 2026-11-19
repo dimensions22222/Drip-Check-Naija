@@ -21,6 +21,7 @@ This is a browser-first React + TypeScript fashion-game foundation. It runs with
 - Public player discovery/search, privacy-curated public profiles, authenticated follows, and a public outfit showcase with authenticated likes
 - Owner-controlled public avatar sharing; private cloud avatars and saved outfits stay private until explicitly shared
 - Supabase migrations, seed catalog, RLS baseline, social RPCs and documented trust boundaries
+- Progression page with server-authoritative levels, daily/weekly missions, Africa/Lagos streak boundaries, achievements, mission XP claims, recent XP history and a bounded live leaderboard
 
 ## Run
 

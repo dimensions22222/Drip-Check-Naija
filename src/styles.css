@@ -63,6 +63,37 @@
 @media(max-width:760px){.account-grid{grid-template-columns:1fr}.account-summary{align-items:flex-start;flex-direction:column}.account-summary .button{width:100%}.account-link{padding:7px 8px}.status>b{display:none}.connection-chip{font-size:8px;padding:8px}.auth-panel{padding:20px 16px}.cloud-actions{display:grid}.cloud-actions .button{width:100%}}
 @media(max-width:390px){.status{display:flex;font-size:0;gap:4px}.status>i,.status>b{display:none}.status .account-link{font-size:8px;padding:7px}.brand{gap:7px}}
 
+.progression-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.progress-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:21px;min-width:0}
+.progress-card h2{font-size:28px;margin:9px 0}
+.progress-card p{color:#c7bed1;font-size:11px;line-height:1.6}
+.level-card{background:linear-gradient(135deg,#46334f,#302b40)}
+.xp-line{display:flex;justify-content:space-between;gap:12px;color:#cfc4d8;font-size:9px;font-weight:800;margin:12px 0 7px}
+.progress-track{height:8px;border-radius:999px;background:#1f1b2a;overflow:hidden}
+.progress-track i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--lav),var(--orange));transition:width .45s ease}
+.mission-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.mission-card{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:18px}
+.mission-card.completed,.mission-card:has(.button){border-color:#72e0c155}
+.mission-heading{display:flex;justify-content:space-between;align-items:center}
+.mission-heading>b{color:var(--mint);font-size:10px}
+.mission-card h3{font-size:18px;margin:10px 0 5px}
+.mission-card p{min-height:34px;margin:0;color:#c7bed1;font-size:11px;line-height:1.55}
+.mission-card .button{width:100%;margin-top:12px}
+.lower-grid{margin-top:14px}
+.achievement-list,.event-list,.leaderboard{display:grid;gap:7px;margin-top:12px}
+.achievement{display:grid;grid-template-columns:38px 1fr auto;align-items:center;gap:9px;padding:9px;border:1px solid #4a4059;border-radius:10px;opacity:.58}
+.achievement.unlocked{opacity:1;border-color:#72e0c155}
+.achievement>b{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#3a3049;color:var(--lav)}
+.achievement strong{font-size:11px}
+.achievement p{margin:3px 0 0;font-size:9px}
+.achievement small{color:var(--mint);font-size:8px}
+.event-list p,.leaderboard p{display:flex;justify-content:space-between;gap:10px;margin:0;padding:9px 0;border-bottom:1px solid #4a4059;color:#c7bed1;font-size:10px}
+.event-list p b,.leaderboard strong{color:var(--orange)}
+.leaderboard p span b{display:inline-block;width:24px;color:var(--lav)}
+.small-empty{padding:28px 12px}
+.small-empty h2{font-size:18px}
+@media(max-width:760px){.progression-grid,.mission-grid{grid-template-columns:1fr}.progress-card{padding:17px}.achievement{grid-template-columns:34px 1fr}.achievement>b{width:34px;height:34px}.achievement small{grid-column:2}.mission-card p{min-height:0}}
+
 .mall-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px;padding:12px 15px;border:1px solid #a78bfa55;border-radius:11px;background:#a78bfa0c;color:#ded5e8;font-size:11px;line-height:1.55}
 .mall-layout{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(270px,.65fr);align-items:start;gap:16px}
 .mall-catalogue,.mall-preview{min-width:0}

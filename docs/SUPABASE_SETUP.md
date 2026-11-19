@@ -29,6 +29,7 @@ The header/account page reports demo or configured state. A URL and safe key are
 ## 3. Apply the database changes
 
 Review the ordered migrations before applying them. `202611160001_supabase_backend_foundation.sql` adds the account tables/policies while converting the existing text fashion-item key to a UUID plus unique slug and preserving the old slug values and inventory references. `202611180001_drip_city_social.sql` adds Drip City public profile/showcase views, opt-in public avatar display, and owner-validated social RPCs. These are forward-only migrations; they do not replace the existing initial migration.
+`202611190001_player_progression.sql` adds the progression foundation: mission definitions, mission/claim state, login streaks, achievements, progression event audit rows, bounded live leaderboard data, and trusted RPCs. Daily periods use Africa/Lagos dates; weekly periods reset on Monday in that timezone. Level XP is cumulative at 100 XP for level 1, 200 for level 2, 300 for level 3, and so on.
 
 With the Supabase CLI installed and authenticated, link the intended project and review pending migrations before pushing:
 

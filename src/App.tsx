@@ -5,12 +5,13 @@ import Account from "./components/Account";
 import FashionMall from "./components/FashionMall";
 import DripCity from "./components/DripCity";
 import PlayerInventory from "./components/PlayerInventory";
+import Progression from "./components/Progression";
 import { defaultLooks, HAIR_COLOURS, itemFor, items as studioItems, normalizeLook, optionsFor, SKINS, type Character, type Expression, type ItemSlot, type Look, type Slot, type View } from "./avatar/catalog";
 import { supabase, supabaseConfigError } from "./supabase/client";
 import { deleteOutfit, listActiveFashionItems, listInventory, listOutfits, loadAvatar as loadCloudAvatar, loadOrCreateProfile, looksFromAvatar, mapFashionItem, saveAvatar as saveCloudAvatar, saveOutfit, setAvatarPublicDisplay, updateProfile, type ActiveFashionItem, type FashionCatalogueItem, type OutfitPreset, type OwnedFashionItem } from "./supabase/repository";
 import type { Database } from "./supabase/database.types";
 
-type Page = "home" | "studio" | "mall" | "inventory" | "battles" | "wardrobe" | "profile" | "city" | "account";
+type Page = "home" | "studio" | "mall" | "inventory" | "battles" | "wardrobe" | "progression" | "profile" | "city" | "account";
 type Preset = OutfitPreset;
 type Store = { looks: Record<Character, Look>; presets: Preset[]; handle: string };
 type ProfileRow = Database["public"]["Tables"]["player_profiles"]["Row"];
@@ -28,7 +29,7 @@ const demoCatalogue: FashionCatalogueItem[] = studioItems.map((item) => ({
 }));
 const labels: Record<Slot, string> = { skin: "Skin tone", hair: "Hairstyle", hairColor: "Hair colour", expression: "Expression", top: "Tops", bottom: "Bottoms", shoes: "Sneakers", chain: "Chains", earrings: "Earrings", glasses: "Glasses", watch: "Watches", bag: "Bags" };
 const slots = Object.keys(labels) as Slot[];
-const nav: [Page, string, string][] = [["home", "⌂", "Home"], ["studio", "✦", "Studio"], ["mall", "◇", "Fashion Mall"], ["inventory", "▦", "Inventory"], ["battles", "⚔", "Battles"], ["wardrobe", "▣", "Wardrobe"], ["profile", "◎", "Profile"], ["city", "◈", "Drip City"]];
+const nav: [Page, string, string][] = [["home", "⌂", "Home"], ["studio", "✦", "Studio"], ["mall", "◇", "Fashion Mall"], ["inventory", "▦", "Inventory"], ["battles", "⚔", "Battles"], ["wardrobe", "▣", "Wardrobe"], ["progression", "★", "Progress"], ["profile", "◎", "Profile"], ["city", "◈", "Drip City"]];
 const expressions: Expression[] = ["normal", "happy", "serious", "surprised"];
 const isItemSlot = (slot: Slot): slot is ItemSlot => !["skin", "hairColor", "expression"].includes(slot);
 function getStore(): Store {
@@ -490,6 +491,7 @@ export default function App() {
         {page === "inventory" && <PlayerInventory items={accountDataReady ? inventory : []} demoMode={!supabase} signedIn={Boolean(currentUserId)} state={currentUserId && !accountDataReady ? "loading" : inventoryState} error={accountDataReady ? inventoryError : ""} retry={retryInventory} character={character} setCharacter={setCharacter} look={look} onEquip={equipInventoryItem} onUnequip={unequipInventoryItem} openMall={() => setPage("mall")} openAccount={() => setPage("account")}/>}
         {page === "battles" && <Battles entered={entered} voted={voted} studio={() => setPage("studio")} enter={() => { setEntered(true); setNotice("Your current look has entered Lagos Nightlife."); }} vote={() => { if (voted) setNotice("One vote per battle — yours is locked."); else { setVoted(true); setNotice("Vote counted. Sharp eye!"); } }}/>}
         {page === "wardrobe" && <Wardrobe presets={visiblePresets} character={character} setCharacter={setCharacter} studio={() => setPage("studio")} load={load} rename={rename} remove={remove} update={updatePreset} sync={syncLocalOutfit} connected={Boolean(session && supabase)} state={visibleCloudOutfitState} error={accountDataReady ? cloudOutfitError : ""} busyIds={busyOutfitIds} retry={refreshCloudOutfits}/>}
+        {page === "progression" && <Progression configured={Boolean(supabase)} signedIn={Boolean(session)} openAccount={() => setPage("account")}/>}
         {page === "profile" && <Profile handle={store.handle} character={character} look={look} change={(handle) => setStore((data) => ({ ...data, handle }))}/>}
         {page === "city" && <DripCity key={currentUserId ?? "guest"} configured={Boolean(supabase)} signedIn={Boolean(currentUserId)} displayName={accountDataReady && profile ? profile.username : store.handle} displayNameIsReal={!supabase || Boolean(accountDataReady && profile)} character={character} look={look} savedOutfits={visiblePresets} myPublicId={accountDataReady ? profile?.public_id ?? null : null} avatarSaved={Boolean(avatarCandidate)} avatarPublic={avatarPublic} catalog={supabase ? catalog : demoCatalogue} openAccount={() => setPage("account")} openStudio={() => setPage("studio")} setNotice={setNotice} onAvatarPublicChange={setAvatarVisibility}/>}
         {page === "account" && <Account configured={Boolean(supabase)} configurationMessage={supabaseConfigError} session={session} authLoading={authLoading} authBusy={authBusy} authMessage={authMessage} authError={authError} signIn={signIn} signUp={signUp} signOut={signOut} continueDemo={() => { setPage("home"); setNotice("Demo mode is ready. Your local outfits are safe."); }} profile={accountDataReady ? profile : null} profileState={currentUserId && !accountDataReady ? "loading" : profileState} profileError={accountDataReady ? profileError : ""} retryProfile={retryProfile} saveProfile={saveProfile} avatar={accountDataReady ? avatarCandidate : null} avatarState={currentUserId && !accountDataReady ? "loading" : avatarState} avatarError={accountDataReady ? avatarError : ""} retryAvatar={retryAvatar} saveAvatar={saveAvatar} applyAvatar={applyAvatar} catalog={catalog} catalogState={catalogState} catalogError={catalogError} retryCatalog={retryCatalog} inventory={accountDataReady ? inventory : []} inventoryState={currentUserId && !accountDataReady ? "loading" : inventoryState} inventoryError={accountDataReady ? inventoryError : ""} retryInventory={retryInventory} cloudOutfitCount={visibleCloudOutfits.length}/>}
