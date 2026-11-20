@@ -24,9 +24,57 @@ export type Database = {
         Relationships: [];
       };
       player_inventory: {
-        Row: { user_id: string; item_id: string; fashion_item_id: string; acquired_at: string; source: string };
-        Insert: { user_id: string; item_id: string; fashion_item_id: string; acquired_at?: string; source?: string };
-        Update: { user_id?: string; item_id?: string; fashion_item_id?: string; acquired_at?: string; source?: string };
+        Row: { user_id: string; fashion_item_id: string; acquired_at: string; source: string };
+        Insert: { user_id: string; fashion_item_id: string; acquired_at?: string; source?: string };
+        Update: { user_id?: string; fashion_item_id?: string; acquired_at?: string; source?: string };
+        Relationships: [];
+      };
+      mission_definitions: {
+        Row: { id: string; code: string; scope: "daily" | "weekly"; title: string; description: string; target: number; xp_reward: number; activity_type: string; active: boolean };
+        Insert: { id?: string; code: string; scope: "daily" | "weekly"; title: string; description: string; target: number; xp_reward: number; activity_type: string; active?: boolean };
+        Update: { id?: string; code?: string; scope?: "daily" | "weekly"; title?: string; description?: string; target?: number; xp_reward?: number; activity_type?: string; active?: boolean };
+        Relationships: [];
+      };
+      player_mission_progress: {
+        Row: { user_id: string; mission_id: string; period_key: string; progress: number; completed_at: string | null; claimed_at: string | null; updated_at: string };
+        Insert: { user_id: string; mission_id: string; period_key: string; progress?: number; completed_at?: string | null; claimed_at?: string | null; updated_at?: string };
+        Update: { user_id?: string; mission_id?: string; period_key?: string; progress?: number; completed_at?: string | null; claimed_at?: string | null; updated_at?: string };
+        Relationships: [];
+      };
+      progression_events: {
+        Row: { id: string; user_id: string; event_type: string; reference_id: string; xp_awarded: number; created_at: string };
+        Insert: { id?: string; user_id: string; event_type: string; reference_id?: string; xp_awarded: number; created_at?: string };
+        Update: { id?: string; user_id?: string; event_type?: string; reference_id?: string; xp_awarded?: number; created_at?: string };
+        Relationships: [];
+      };
+      login_streaks: {
+        Row: { user_id: string; current_streak: number; longest_streak: number; last_login_date: string | null; updated_at: string };
+        Insert: { user_id: string; current_streak?: number; longest_streak?: number; last_login_date?: string | null; updated_at?: string };
+        Update: { user_id?: string; current_streak?: number; longest_streak?: number; last_login_date?: string | null; updated_at?: string };
+        Relationships: [];
+      };
+      achievement_definitions: {
+        Row: { id: string; code: string; category: string; name: string; description: string; icon: string; rarity: string | null; active: boolean };
+        Insert: { id?: string; code: string; category: string; name: string; description: string; icon: string; rarity?: string | null; active?: boolean };
+        Update: { id?: string; code?: string; category?: string; name?: string; description?: string; icon?: string; rarity?: string | null; active?: boolean };
+        Relationships: [];
+      };
+      player_achievements: {
+        Row: { user_id: string; achievement_id: string; unlocked_at: string; featured: boolean };
+        Insert: { user_id: string; achievement_id: string; unlocked_at?: string; featured?: boolean };
+        Update: { user_id?: string; achievement_id?: string; unlocked_at?: string; featured?: boolean };
+        Relationships: [];
+      };
+      reward_definitions: {
+        Row: { id: string; code: string; name: string; description: string; reward_type: "xp" | "badge" | "cosmetic" | "title"; active: boolean };
+        Insert: { id?: string; code: string; name: string; description: string; reward_type: "xp" | "badge" | "cosmetic" | "title"; active?: boolean };
+        Update: { id?: string; code?: string; name?: string; description?: string; reward_type?: "xp" | "badge" | "cosmetic" | "title"; active?: boolean };
+        Relationships: [];
+      };
+      reward_claims: {
+        Row: { user_id: string; reward_id: string; claimed_at: string };
+        Insert: { user_id: string; reward_id: string; claimed_at?: string };
+        Update: { user_id?: string; reward_id?: string; claimed_at?: string };
         Relationships: [];
       };
       outfits: {
@@ -74,6 +122,7 @@ export type Database = {
       get_progression_dashboard: { Args: Record<string, never>; Returns: Json };
       record_progression_activity: { Args: { p_activity_type: string; p_reference_id?: string }; Returns: Json };
       claim_mission_reward: { Args: { p_mission_id: string }; Returns: Json };
+      set_featured_achievement: { Args: { p_code: string; p_featured: boolean }; Returns: undefined };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

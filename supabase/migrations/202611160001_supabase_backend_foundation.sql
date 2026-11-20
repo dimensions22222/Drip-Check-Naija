@@ -32,15 +32,17 @@ alter table public.fashion_items alter column metadata set not null;
 update public.fashion_items set active = false where slug = 'acc-chain';
 
 alter table public.player_inventory drop constraint if exists player_inventory_item_id_fkey;
+alter table public.player_inventory drop constraint if exists player_inventory_pkey;
 alter table public.player_inventory add column fashion_item_id uuid;
 update public.player_inventory inventory
 set fashion_item_id = item.id
 from public.fashion_items item
 where item.slug = inventory.item_id;
 alter table public.player_inventory alter column fashion_item_id set not null;
+alter table public.player_inventory drop column item_id;
 alter table public.player_inventory add constraint player_inventory_fashion_item_id_fkey
   foreign key (fashion_item_id) references public.fashion_items(id) on delete restrict;
-alter table public.player_inventory add constraint player_inventory_user_fashion_item_key unique (user_id, fashion_item_id);
+alter table public.player_inventory add constraint player_inventory_pkey primary key (user_id, fashion_item_id);
 alter table public.player_inventory add column source text not null default 'legacy';
 create index player_inventory_owner_idx on public.player_inventory(user_id);
 
