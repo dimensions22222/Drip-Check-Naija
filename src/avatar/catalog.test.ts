@@ -6,7 +6,7 @@ describe("avatar look normalization", () => {
     const normalized = normalizeLook({
       hair: "hair-spikes",
       top: "missing-top",
-      bottom: "bottom-skirt",
+      bottom: "missing-bottom",
       expression: "unknown",
       view: "sideways",
     } as never, "femme");
