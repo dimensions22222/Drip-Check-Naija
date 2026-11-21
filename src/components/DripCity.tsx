@@ -1,8 +1,13 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import type { Character, Look } from "../avatar/catalog";
-import { defaultLooks } from "../avatar/catalog";
+import { defaultLooks, normalizeLook } from "../avatar/catalog";
 import AvatarRenderer from "../avatar/AvatarRenderer";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+import { supabase } from "../supabase/client";
+import type { RemoteCityPlayer } from "./PhaserWorld";
 import type {
+  CityChatMessage,
   FashionCatalogueItem,
   OutfitPreset,
   PublicPlayer,
@@ -13,10 +18,15 @@ import {
   getPlayerConnections,
   listPublicPlayers,
   listPublicShowcases,
+  listCityChatMessages,
   loadPublicProfile,
   publishShowcase,
   publicAvatarFromProfile,
   removeShowcase,
+  reportPlayer,
+  sendCityChatMessage,
+  setPlayerBlock,
+  setPlayerMute,
   setPlayerFollow,
   setShowcaseLike,
 } from "../supabase/repository";
@@ -39,12 +49,12 @@ type DemoShowcase = PublicShowcase & { demo: true };
 type CityPlayer = PublicPlayer | DemoPlayer;
 
 const locations = [
-  { name: "Lagos Fashion District", tag: "THE STYLE CAPITAL", icon: "✦", note: "Runway energy, street-level confidence." },
-  { name: "The Mainland Hangout", tag: "COMMUNITY SQUARE", icon: "◉", note: "Catch a breather between fresh fits." },
-  { name: "Island Style Avenue", tag: "THE LOOKOUT", icon: "↗", note: "Big-city silhouettes and bright lights." },
-  { name: "Campus Plaza", tag: "CAMPUS CORNER", icon: "▤", note: "Young creatives set the next trend." },
-  { name: "The Naija Market", tag: "MARKET STREET", icon: "◇", note: "Colour, craft, and market-day finds." },
-  { name: "The Rooftop Lounge", tag: "AFTER HOURS", icon: "☾", note: "A laid-back spot above the city." },
+  { id: "lagos-fashion-district", name: "Lagos Fashion District", tag: "THE STYLE CAPITAL", icon: "✦", note: "Runway energy, street-level confidence." },
+  { id: "mainland-hangout", name: "The Mainland Hangout", tag: "COMMUNITY SQUARE", icon: "◉", note: "Catch a breather between fresh fits." },
+  { id: "island-style-avenue", name: "Island Style Avenue", tag: "THE LOOKOUT", icon: "↗", note: "Big-city silhouettes and bright lights." },
+  { id: "campus-plaza", name: "Campus Plaza", tag: "CAMPUS CORNER", icon: "▤", note: "Young creatives set the next trend." },
+  { id: "naija-market", name: "The Naija Market", tag: "MARKET STREET", icon: "◇", note: "Colour, craft, and market-day finds." },
+  { id: "rooftop-lounge", name: "The Rooftop Lounge", tag: "AFTER HOURS", icon: "☾", note: "A laid-back spot above the city." },
 ];
 
 const demoPlayers: DemoPlayer[] = [
@@ -120,11 +130,160 @@ export default function DripCity(props: Props) {
   const [busyIds, setBusyIds] = useState<string[]>([]);
   const [title, setTitle] = useState("");
   const [avatarBusy, setAvatarBusy] = useState(false);
+  const [roomId, setRoomId] = useState(locations[0].id);
+  const [realtimeStatus, setRealtimeStatus] = useState<"offline" | "connecting" | "connected" | "error">("offline");
+  const [remotePlayers, setRemotePlayers] = useState<RemoteCityPlayer[]>([]);
+  const [chatMessages, setChatMessages] = useState<CityChatMessage[]>([]);
+  const [chatText, setChatText] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
+  const [chatError, setChatError] = useState("");
+  const [moderationBusy, setModerationBusy] = useState(false);
+  const realtimeChannel = useRef<RealtimeChannel | null>(null);
 
   const ownFits = useMemo(
     () => props.savedOutfits.filter((outfit) => outfit.source === "cloud"),
     [props.savedOutfits],
   );
+
+  const sendPosition = useCallback((position: { x: number; y: number }) => {
+    void realtimeChannel.current?.send({
+      type: "broadcast",
+      event: "position",
+      payload: {
+        publicId: props.myPublicId,
+        username: props.displayName,
+        character: props.character,
+        look: props.look,
+        x: position.x,
+        y: position.y,
+      },
+    });
+  }, [props.character, props.displayName, props.look, props.myPublicId]);
+
+  useEffect(() => {
+    let active = true;
+    setChatMessages([]);
+    setChatError("");
+    if (!props.configured || !props.signedIn || !props.myPublicId) {
+      setRemotePlayers([]);
+      setRealtimeStatus("offline");
+      return () => { active = false; };
+    }
+    if (!supabase) {
+      setRealtimeStatus("error");
+      return () => { active = false; };
+    }
+
+    setRealtimeStatus("connecting");
+    void listCityChatMessages(roomId).then((messages) => {
+      if (active) setChatMessages(messages);
+    }).catch((error: unknown) => {
+      if (active) setChatError(error instanceof Error ? error.message : "Could not load room chat.");
+    });
+
+    const channel = supabase.channel(`drip-city:${roomId}`, {
+      config: { broadcast: { ack: false, self: false }, presence: { key: props.myPublicId } },
+    });
+    realtimeChannel.current = channel;
+
+    channel.on("presence", { event: "sync" }, () => {
+      const state = channel.presenceState();
+      const next: RemoteCityPlayer[] = [];
+      Object.values(state).forEach((entries) => {
+        entries.forEach((entry) => {
+          const payload = entry as unknown as Record<string, unknown>;
+          const publicId = payload.publicId;
+          const username = payload.username;
+          const character = payload.character;
+          const look = payload.look;
+          const x = payload.x;
+          const y = payload.y;
+          if (typeof publicId !== "string" || publicId === props.myPublicId) return;
+          if (typeof username !== "string") return;
+          if (character !== "femme" && character !== "masc") return;
+          if (!look || typeof look !== "object" || typeof x !== "number" || typeof y !== "number") return;
+          next.push({
+            publicId,
+            username,
+            character,
+            look: normalizeLook(look as Partial<Look>, character),
+            x,
+            y,
+          });
+        });
+      });
+      setRemotePlayers(next);
+    });
+
+    channel.on("broadcast", { event: "position" }, ({ payload }) => {
+      if (!payload || typeof payload !== "object") return;
+      const record = payload as unknown as Record<string, unknown>;
+      const publicId = record.publicId;
+      const username = record.username;
+      const character = record.character;
+      const look = record.look;
+      const x = record.x;
+      const y = record.y;
+      if (typeof publicId !== "string" || publicId === props.myPublicId) return;
+      if (typeof username !== "string") return;
+      if (character !== "femme" && character !== "masc") return;
+      if (!look || typeof look !== "object" || typeof x !== "number" || typeof y !== "number") return;
+      setRemotePlayers((current) => {
+        const existing = current.find((player) => player.publicId === publicId);
+        const nextPlayer: RemoteCityPlayer = {
+          publicId,
+          username,
+          character,
+          look: normalizeLook(look as Partial<Look>, character),
+          x,
+          y,
+        };
+        return existing
+          ? current.map((player) => player.publicId === publicId ? nextPlayer : player)
+          : [...current, nextPlayer];
+      });
+    });
+
+    channel.on("broadcast", { event: "chat" }, ({ payload }) => {
+      if (!payload || typeof payload !== "object") return;
+      const record = payload as unknown as Record<string, unknown>;
+      const id = record.id;
+      const senderPublicId = record.senderPublicId;
+      const username = record.username;
+      const body = record.body;
+      const createdAt = record.createdAt;
+      if (typeof id !== "string" || typeof senderPublicId !== "string") return;
+      if (typeof username !== "string" || typeof body !== "string" || typeof createdAt !== "string") return;
+      setChatMessages((current) => current.some((message) => message.id === id)
+        ? current
+        : [...current, { id, room: roomId, senderPublicId, username, body, createdAt }].slice(-40));
+    });
+
+    channel.subscribe((status) => {
+      if (!active) return;
+      if (status === "SUBSCRIBED") {
+        setRealtimeStatus("connected");
+        void channel.track({
+          publicId: props.myPublicId,
+          username: props.displayName,
+          character: props.character,
+          look: props.look,
+          x: 590,
+          y: 590,
+        });
+      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        setRealtimeStatus("error");
+      } else if (status === "CLOSED") {
+        setRealtimeStatus("offline");
+      }
+    });
+
+    return () => {
+      active = false;
+      if (realtimeChannel.current === channel) realtimeChannel.current = null;
+      void supabase?.removeChannel(channel);
+    };
+  }, [props.configured, props.signedIn, props.myPublicId, props.displayName, props.character, props.look, roomId]);
   const ownProfileSelected = Boolean(props.myPublicId && selectedPublicId === props.myPublicId);
   const publicPageProfile = selectedDemo ? null : viewedProfile;
   const activeProfileId = selectedDemo?.publicId ?? publicPageProfile?.public_id ?? selectedPublicId;
@@ -373,6 +532,50 @@ export default function DripCity(props: Props) {
     } finally { setAvatarBusy(false); }
   };
 
+  const sendChat = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!props.signedIn) { props.openAccount(); return; }
+    const cleanBody = chatText.trim();
+    if (!cleanBody) return;
+    setChatBusy(true);
+    setChatError("");
+    try {
+      const id = await sendCityChatMessage(roomId, cleanBody);
+      await realtimeChannel.current?.send({
+        type: "broadcast",
+        event: "chat",
+        payload: {
+          id,
+          room: roomId,
+          senderPublicId: props.myPublicId,
+          username: props.displayName,
+          body: cleanBody,
+          createdAt: new Date().toISOString(),
+        },
+      });
+      setChatText("");
+    } catch (error) {
+      setChatError(error instanceof Error ? error.message : "Could not send this message.");
+    } finally {
+      setChatBusy(false);
+    }
+  };
+
+  const moderatePlayer = async (publicId: string, action: "block" | "mute" | "report") => {
+    if (!props.signedIn) { props.openAccount(); return; }
+    setModerationBusy(true);
+    try {
+      if (action === "block") await setPlayerBlock(publicId, true);
+      if (action === "mute") await setPlayerMute(publicId, true);
+      if (action === "report") await reportPlayer(publicId, "Reported from Drip City", roomId);
+      props.setNotice(action === "report" ? "Player report submitted." : `Player ${action}ed.`);
+    } catch (error) {
+      props.setNotice(error instanceof Error ? error.message : "Moderation action failed.");
+    } finally {
+      setModerationBusy(false);
+    }
+  };
+
   const tabs: [Section, string][] = [["hub", "City hub"], ["explore", "Explore"], ["players", "Players"], ["fits", "Outfit showcase"], ["profile", "My profile"], ["chat", "Chat"]];
   const openShowcasePlayer = (id: string) => {
     const sample = demoPlayers.find((player) => player.publicId === id);
@@ -392,25 +595,25 @@ export default function DripCity(props: Props) {
 
     {section === "hub" && <div className="city-hub">
       <section className="city-welcome">
-        <div className="city-welcome-copy"><span className="eyebrow">YOUR LOOK. YOUR BLOCK.</span><h2>{props.displayNameIsReal ? `Welcome to Drip City, ${props.displayName}.` : "Welcome to Drip City."}</h2><p>A single-player neighbourhood for fashion, discovery, and the community fits that players choose to share.</p><div className="city-welcome-actions"><button className="button" onClick={() => setSection("explore")}>WALK THE CITY →</button><button className="button quiet" onClick={props.openStudio}>EDIT YOUR FIT</button></div><small>Single-player demo · no live player locations or online status</small></div>
+        <div className="city-welcome-copy"><span className="eyebrow">YOUR LOOK. YOUR BLOCK.</span><h2>{props.displayNameIsReal ? `Welcome to Drip City, ${props.displayName}.` : "Welcome to Drip City."}</h2><p>{props.configured && props.signedIn ? "Walk a live neighbourhood room, meet authenticated players, and share your look." : "Explore the demo neighbourhood and community looks, or sign in for live multiplayer."}</p><div className="city-welcome-actions"><button className="button" onClick={() => setSection("explore")}>WALK THE CITY →</button><button className="button quiet" onClick={props.openStudio}>EDIT YOUR FIT</button></div><small>{props.configured && props.signedIn ? `LIVE ROOM · ${realtimeStatus.toUpperCase()} · ${locations.find((place) => place.id === roomId)?.name}` : "SINGLE-PLAYER DEMO · NO FABRICATED ONLINE STATUS"}</small></div>
         <div className="city-welcome-avatar"><AvatarRenderer character={props.character} look={props.look}/><span>YOUR AVATAR</span></div>
       </section>
       <div className="city-section-heading"><div><span className="eyebrow">NEIGHBOURHOOD SPOTS</span><h2>Pick your next stop.</h2></div><button className="text-btn" onClick={() => setSection("explore")}>EXPLORE THE MAP →</button></div>
-      <section className="city-location-grid">{locations.map((place, index) => <button className={`city-location city-location-${index + 1}`} key={place.name} onClick={() => setSection("explore")}><span>{place.icon}</span><small>{place.tag} · DEMO</small><b>{place.name}</b><p>{place.note}</p><i>OPEN DISTRICT →</i></button>)}</section>
+      <section className="city-location-grid">{locations.map((place, index) => <button className={`city-location city-location-${index + 1}`} key={place.name} onClick={() => { setRoomId(place.id); setSection("explore"); }}><span>{place.icon}</span><small>{place.tag} · {props.configured && props.signedIn ? "LIVE ROOM" : "DEMO"}</small><b>{place.name}</b><p>{place.note}</p><i>OPEN DISTRICT →</i></button>)}</section>
       <div className="city-section-heading"><div><span className="eyebrow">{props.configured ? "PUBLIC PLAYER PROFILES" : "DEMO PLAYERS"}</span><h2>People with their own drip.</h2></div><button className="text-btn" onClick={() => setSection("players")}>DISCOVER PLAYERS →</button></div>
       {featuredError && <p className="city-inline-error" role="alert">{featuredError}</p>}
       {featuredPlayers.length ? <section className="city-player-grid">{featuredPlayers.map((player) => <PlayerCard key={isDemoPlayer(player) ? player.publicId : player.public_id} player={player} catalog={props.catalog} signedIn={props.signedIn} myPublicId={props.myPublicId} busy={busyIds.includes(isDemoPlayer(player) ? player.publicId : player.public_id)} onOpen={() => openPlayer(player)} onFollow={() => !isDemoPlayer(player) && void followPlayer(player)} openAccount={props.openAccount}/>)}</section> : props.configured && !featuredError ? <p className="city-muted">No public profiles to feature yet.</p> : null}
       <div className="city-section-heading"><div><span className="eyebrow">{props.configured ? "TRENDING · PUBLIC LIKES" : "DEMO OUTFITS"}</span><h2>Fits making the rounds.</h2></div><button className="text-btn" onClick={() => setSection("fits")}>BROWSE THE SHOWCASE →</button></div>
       {featuredFits.length ? <section className="city-fit-grid">{featuredFits.map((fit) => <FitCard key={fit.id} fit={fit} catalog={props.catalog} busy={busyIds.includes(fit.id)} signedIn={props.signedIn} onLike={() => void toggleLike(fit)} onPlayer={() => openShowcasePlayer(fit.playerPublicId)} openAccount={props.openAccount}/>)}</section> : props.configured && !featuredError ? <p className="city-muted">No outfits have been published yet.</p> : null}
-      <section className="city-chat-teaser"><div><span className="eyebrow">COMMUNITY CHAT</span><h2>The conversation is coming soon.</h2><p>There is no live chat or messaging in this milestone. No sample messages are shown as real conversations.</p></div><button className="button quiet" onClick={() => setSection("chat")}>CHAT STATUS</button></section>
+      <section className="city-chat-teaser"><div><span className="eyebrow">COMMUNITY CHAT</span><h2>{props.configured && props.signedIn ? "Talk in your current city room." : "Sign in to join community chat."}</h2><p>{props.configured && props.signedIn ? `${locations.find((place) => place.id === roomId)?.name} · ${realtimeStatus.toUpperCase()}` : "Messages are unavailable until authentication is configured. Demo content never appears as real chat."}</p></div><button className="button quiet" onClick={() => setSection("chat")}>{props.configured && props.signedIn ? "OPEN CHAT" : "CHAT STATUS"}</button></section>
       <div className="city-demo-battle">Fashion Battles are currently a separate demo experience. There are no connected active battles or live placements to show here.</div>
     </div>}
 
     {section === "explore" && <section className="city-explore">
-      <div className="city-explore-heading"><div><span className="eyebrow">LAGOS FASHION DISTRICT · DEMO</span><h2>Take a walk through the neighbourhood.</h2><p>Move around the single-player map. Buildings are decorative destinations; multiplayer is not connected.</p></div><span className="city-control-hint">WASD / ARROWS</span></div>
-      <Suspense fallback={<div className="phaser-loading" role="status">Preparing the city map…</div>}><PhaserWorld character={props.character} look={props.look}/></Suspense>
+      <div className="city-explore-heading"><div><span className="eyebrow">{locations.find((place) => place.id === roomId)?.name.toUpperCase()} · {props.configured && props.signedIn ? realtimeStatus.toUpperCase() : "DEMO"}</span><h2>Take a walk through the neighbourhood.</h2><p>{props.configured && props.signedIn ? "Authenticated players in this room appear as real presence; movement is broadcast live." : "Move around the single-player map. No fabricated players or online status are shown."}</p></div><span className="city-control-hint">WASD / ARROWS</span></div>
+      <Suspense fallback={<div className="phaser-loading" role="status">Preparing the city map…</div>}><PhaserWorld character={props.character} look={props.look} multiplayerEnabled={props.configured && props.signedIn} remotePlayers={remotePlayers} onPositionChange={sendPosition}/></Suspense>
       <div className="city-map-note"><b>MAP KEY</b><span><i className="map-key-building"/>Fashion destinations</span><span><i className="map-key-path"/>Walkable streets</span><span><i className="map-key-player"/>Your avatar marker</span></div>
-      <div className="city-destination-list">{locations.map((place) => <article key={place.name}><b>{place.name}</b><span>Demo location · exploration only</span></article>)}</div>
+      <div className="city-destination-list">{locations.map((place) => <button key={place.name} className={roomId === place.id ? "selected" : ""} onClick={() => setRoomId(place.id)}><b>{place.name}</b><span>{roomId === place.id ? "CURRENT ROOM" : props.configured && props.signedIn ? "OPEN LIVE ROOM" : "DEMO LOCATION"}</span></button>)}</div>
     </section>}
 
     {section === "players" && <section className="city-page-panel">
@@ -437,12 +640,23 @@ export default function DripCity(props: Props) {
       {profileState === "loading" && <p className="city-muted" role="status">Loading public profile…</p>}
       {profileState === "error" && <p className="city-inline-error" role="alert">{profileError}</p>}
       {!selectedPublicId && !selectedDemo && <div className="city-empty"><h3>{props.signedIn ? "Your profile is not ready." : "Sign in to view your public profile."}</h3><p>{props.signedIn ? "Open Account to retry loading your cloud profile." : "A public profile is available after you create an account."}</p><button className="button quiet" onClick={props.openAccount}>OPEN ACCOUNT</button></div>}
-      {profileState === "ready" && (selectedDemo || publicPageProfile) && <ProfilePanel player={selectedDemo ?? publicPageProfile!} own={ownProfileSelected} ownCharacter={props.character} ownLook={props.look} signedIn={props.signedIn} busy={Boolean(publicPageProfile && busyIds.includes(publicPageProfile.public_id))} onFollow={() => publicPageProfile && void followPlayer(publicPageProfile)} onConnections={loadConnections} openAccount={props.openAccount} avatarSaved={props.avatarSaved} avatarPublic={props.avatarPublic} avatarBusy={avatarBusy} onAvatarPublic={() => void toggleAvatarPublic()} catalog={props.catalog}/>}
+      {profileState === "ready" && (selectedDemo || publicPageProfile) && <ProfilePanel player={selectedDemo ?? publicPageProfile!} own={ownProfileSelected} ownCharacter={props.character} ownLook={props.look} signedIn={props.signedIn} busy={Boolean(publicPageProfile && busyIds.includes(publicPageProfile.public_id))} moderationBusy={moderationBusy} onFollow={() => publicPageProfile && void followPlayer(publicPageProfile)} onModerate={(publicId, action) => void moderatePlayer(publicId, action)} onConnections={loadConnections} openAccount={props.openAccount} avatarSaved={props.avatarSaved} avatarPublic={props.avatarPublic} avatarBusy={avatarBusy} onAvatarPublic={() => void toggleAvatarPublic()} catalog={props.catalog}/>}
       {connectionType && <section className="city-connections"><div className="city-section-heading"><h3>{connectionType === "followers" ? "Followers" : "Following"}</h3><button className="text-btn" onClick={() => setConnectionType(null)}>CLOSE</button></div>{connectionsState === "loading" && <p className="city-muted" role="status">Loading connections…</p>}{connectionsState === "error" && <p className="city-inline-error" role="alert">{connectionsError}</p>}{connectionsState === "ready" && (connections.length ? connections.map((connection) => <button key={connection.public_id} onClick={() => { setSelectedDemo(null); setSelectedPublicId(connection.public_id); setViewedProfile(null); setSection("profile"); setConnectionType(null); }}><span>{connection.username}</span><small>VIEW PROFILE →</small></button>) : <p className="city-muted">No {connectionType} yet.</p>)}</section>}
       {profileState === "ready" && (selectedDemo || publicPageProfile) && <><div className="city-section-heading"><div><span className="eyebrow">PUBLIC OUTFIT SHOWCASE</span><h3>Shared looks</h3></div></div>{profileFitsState === "loading" && <p className="city-muted" role="status">Loading shared outfits…</p>}{profileFitsState === "error" && <p className="city-inline-error" role="alert">{profileFitsError}</p>}{profileFitsState === "ready" && (profileFits.length ? <section className="city-fit-grid">{profileFits.map((fit) => <FitCard key={fit.id} fit={fit} catalog={props.catalog} busy={busyIds.includes(fit.id)} signedIn={props.signedIn} onLike={() => void toggleLike(fit)} onPlayer={() => undefined} openAccount={props.openAccount} onRemove={fit.playerPublicId === props.myPublicId ? () => void unpublish(fit) : undefined}/>)}</section> : <p className="city-muted">No outfits have been shared publicly.</p>)}</>}
     </section>}
 
-    {section === "chat" && <section className="city-chat-coming"><span className="eyebrow">COMMUNITY CHAT</span><div className="city-chat-icon">✉</div><h2>Communication is coming soon.</h2><p>There is no live location chat or private messaging in this milestone. This space does not contain fabricated messages or conversations.</p><p>Real chat needs authenticated realtime channels, server-side membership checks, message validation, abuse controls, and private-conversation RLS before it can launch.</p><button className="button quiet" onClick={() => setSection("hub")}>BACK TO CITY HUB</button></section>}
+    {section === "chat" && <section className="city-chat-room">
+      <div className="city-chat-heading"><div><span className="eyebrow">ROOM CHAT</span><h2>{locations.find((place) => place.id === roomId)?.name}</h2></div><span className={`city-live-status ${realtimeStatus}`}>{realtimeStatus.toUpperCase()}</span></div>
+      <label className="city-room-picker">LOCATION<select value={roomId} onChange={(event) => setRoomId(event.target.value)}>{locations.map((place) => <option key={place.id} value={place.id}>{place.name}</option>)}</select></label>
+      {!props.configured || !props.signedIn ? <div className="city-chat-auth"><h3>Sign in to join room chat.</h3><p>Demo mode does not invent messages or people.</p><button className="button" onClick={props.openAccount}>OPEN ACCOUNT</button></div> : <>
+        <div className="city-chat-messages" aria-live="polite">
+          {chatError && <p className="city-inline-error" role="alert">{chatError}</p>}
+          {!chatError && chatMessages.length === 0 && <p className="city-muted">No verified messages in this room yet.</p>}
+          {chatMessages.map((message) => <article key={message.id} className={message.senderPublicId === props.myPublicId ? "own" : ""}><div><b>{message.username}</b><time>{new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time></div><p>{message.body}</p></article>)}
+        </div>
+        <form className="city-chat-form" onSubmit={sendChat}><input aria-label="Room chat message" maxLength={240} value={chatText} onChange={(event) => setChatText(event.target.value)} placeholder={`Message ${locations.find((place) => place.id === roomId)?.name}`}/><button className="button" disabled={chatBusy || !chatText.trim()}>{chatBusy ? "SENDING…" : "SEND"}</button></form>
+      </>}
+    </section>}
   </section>;
 }
 
@@ -487,14 +701,16 @@ function FitCard({ fit, catalog, busy, signedIn, onLike, onPlayer, openAccount, 
   </article>;
 }
 
-function ProfilePanel({ player, own, ownCharacter, ownLook, signedIn, busy, onFollow, onConnections, openAccount, avatarSaved, avatarPublic, avatarBusy, onAvatarPublic, catalog }: {
+function ProfilePanel({ player, own, ownCharacter, ownLook, signedIn, busy, moderationBusy, onFollow, onModerate, onConnections, openAccount, avatarSaved, avatarPublic, avatarBusy, onAvatarPublic, catalog }: {
   player: PublicPlayer | DemoPlayer;
   own: boolean;
   ownCharacter: Character;
   ownLook: Look;
   signedIn: boolean;
   busy: boolean;
+  moderationBusy: boolean;
   onFollow: () => void;
+  onModerate: (publicId: string, action: "block" | "mute" | "report") => void;
   onConnections: (type: "followers" | "following") => void;
   openAccount: () => void;
   avatarSaved: boolean;
@@ -511,7 +727,7 @@ function ProfilePanel({ player, own, ownCharacter, ownLook, signedIn, busy, onFo
     <div className="city-profile-details"><span className="eyebrow">{demo ? "SAMPLE PLAYER" : "PUBLIC PROFILE"}</span><h3>{player.username}</h3><p>{demo ? player.bio : player.bio || "No bio added yet."}</p>
       {demo ? <p className="city-achievement">{player.sampleAchievement} <small>DEMO</small></p> : <p className="city-achievement">Level {player.level} · {player.xp} XP <small>PROFILE DATA</small></p>}
       <div className="city-profile-stats">{demo ? <><b>DEMO<small>FOLLOWERS</small></b><b>DEMO<small>FOLLOWING</small></b></> : <><button onClick={() => onConnections("followers")}><b>{player.follower_count}</b><small>FOLLOWERS</small></button><button onClick={() => onConnections("following")}><b>{player.following_count}</b><small>FOLLOWING</small></button></>}</div>
-      {!demo && <div className="city-profile-actions">{own ? <><button className="button quiet" onClick={openAccount}>EDIT MY PROFILE</button><button className="button" disabled={avatarBusy || !avatarSaved} onClick={onAvatarPublic}>{avatarBusy ? "SAVING…" : avatarPublic ? "MAKE AVATAR PRIVATE" : "SHARE AVATAR PUBLICLY"}</button>{!avatarSaved && <small>Save a cloud avatar in Account before sharing it.</small>}</> : <button className="button" disabled={busy} onClick={() => signedIn ? onFollow() : openAccount()}>{!signedIn ? "SIGN IN TO FOLLOW" : player.viewer_follows ? "UNFOLLOW PLAYER" : "FOLLOW PLAYER"}</button>}</div>}
+      {!demo && <div className="city-profile-actions">{own ? <><button className="button quiet" onClick={openAccount}>EDIT MY PROFILE</button><button className="button" disabled={avatarBusy || !avatarSaved} onClick={onAvatarPublic}>{avatarBusy ? "SAVING…" : avatarPublic ? "MAKE AVATAR PRIVATE" : "SHARE AVATAR PUBLICLY"}</button>{!avatarSaved && <small>Save a cloud avatar in Account before sharing it.</small>}</> : <><button className="button" disabled={busy} onClick={() => signedIn ? onFollow() : openAccount()}>{!signedIn ? "SIGN IN TO FOLLOW" : player.viewer_follows ? "UNFOLLOW PLAYER" : "FOLLOW PLAYER"}</button><button className="button quiet" disabled={moderationBusy} onClick={() => onModerate(player.public_id, "mute")}>MUTE</button><button className="button quiet" disabled={moderationBusy} onClick={() => onModerate(player.public_id, "block")}>BLOCK</button><button className="button quiet" disabled={moderationBusy} onClick={() => onModerate(player.public_id, "report")}>REPORT</button></>}</div>}
       {demo && <p className="city-demo-note">Demo characters and achievements are illustrations, not live player records.</p>}
       <div className="city-profile-record"><b>Battle placements</b><span>{demo ? "Sample only — no live results." : "No verified battle placements are available yet."}</span></div>
     </div>

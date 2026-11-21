@@ -101,6 +101,30 @@ export type Database = {
         Update: { showcase_id?: string; user_id?: string; created_at?: string };
         Relationships: [];
       };
+      city_chat_messages: {
+        Row: { id: string; room: string; sender_id: string; sender_public_id: string; body: string; created_at: string };
+        Insert: { id?: string; room: string; sender_id: string; sender_public_id: string; body: string; created_at?: string };
+        Update: { id?: string; room?: string; sender_id?: string; sender_public_id?: string; body?: string; created_at?: string };
+        Relationships: [];
+      };
+      player_blocks: {
+        Row: { blocker_id: string; blocked_id: string; created_at: string };
+        Insert: { blocker_id: string; blocked_id: string; created_at?: string };
+        Update: { blocker_id?: string; blocked_id?: string; created_at?: string };
+        Relationships: [];
+      };
+      player_mutes: {
+        Row: { muter_id: string; muted_id: string; created_at: string };
+        Insert: { muter_id: string; muted_id: string; created_at?: string };
+        Update: { muter_id?: string; muted_id?: string; created_at?: string };
+        Relationships: [];
+      };
+      player_reports: {
+        Row: { id: string; reporter_id: string; reported_id: string; reason: string; room: string | null; created_at: string };
+        Insert: { id?: string; reporter_id: string; reported_id: string; reason: string; room?: string | null; created_at?: string };
+        Update: { id?: string; reporter_id?: string; reported_id?: string; reason?: string; room?: string | null; created_at?: string };
+        Relationships: [];
+      };
     };
     Views: {
       public_player_profiles: {
@@ -123,6 +147,10 @@ export type Database = {
       record_progression_activity: { Args: { p_activity_type: string; p_reference_id?: string }; Returns: Json };
       claim_mission_reward: { Args: { p_mission_id: string }; Returns: Json };
       set_featured_achievement: { Args: { p_code: string; p_featured: boolean }; Returns: undefined };
+      send_city_chat_message: { Args: { target_room: string; target_body: string }; Returns: string };
+      set_player_block: { Args: { target_public_id: string; should_block: boolean }; Returns: undefined };
+      set_player_mute: { Args: { target_public_id: string; should_mute: boolean }; Returns: undefined };
+      report_player: { Args: { target_public_id: string; target_reason: string; target_room?: string | null }; Returns: string };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

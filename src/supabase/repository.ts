@@ -24,6 +24,14 @@ export type PublicShowcase = {
   likeCount: number;
   viewerLiked: boolean;
 };
+export type CityChatMessage = {
+  id: string;
+  room: string;
+  senderPublicId: string;
+  username: string;
+  body: string;
+  createdAt: string;
+};
 export type PlayerConnection = Database["public"]["Functions"]["get_player_connections"]["Returns"][number];
 export type ProgressionDashboard = {
   profile: { level: number; xp: number; levelXp: number; nextLevelXp: number };
@@ -149,6 +157,67 @@ export async function loadPublicProfile(publicId: string): Promise<PublicPlayer 
     .select("*").eq("public_id", publicId).maybeSingle();
   if (error) throw new Error(error.message);
   return data;
+}
+
+export async function listCityChatMessages(room: string, limit = 40): Promise<CityChatMessage[]> {
+  const { data: messages, error } = await client().from("city_chat_messages")
+    .select("id, room, sender_public_id, body, created_at")
+    .eq("room", room)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  if (!messages.length) return [];
+
+  const publicIds = [...new Set(messages.map((message) => message.sender_public_id))];
+  const { data: profiles, error: profileError } = await client()
+    .from("public_player_profiles")
+    .select("public_id, username")
+    .in("public_id", publicIds);
+  if (profileError) throw new Error(profileError.message);
+  const usernames = new Map(profiles.map((profile) => [profile.public_id, profile.username]));
+
+  return [...messages].reverse().map((message) => ({
+    id: message.id,
+    room: message.room,
+    senderPublicId: message.sender_public_id,
+    username: usernames.get(message.sender_public_id) ?? "Player",
+    body: message.body,
+    createdAt: message.created_at,
+  }));
+}
+
+export async function sendCityChatMessage(room: string, body: string): Promise<string> {
+  const { data, error } = await client().rpc("send_city_chat_message", {
+    target_room: room,
+    target_body: body,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function setPlayerBlock(publicId: string, blocked: boolean): Promise<void> {
+  const { error } = await client().rpc("set_player_block", {
+    target_public_id: publicId,
+    should_block: blocked,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function setPlayerMute(publicId: string, muted: boolean): Promise<void> {
+  const { error } = await client().rpc("set_player_mute", {
+    target_public_id: publicId,
+    should_mute: muted,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function reportPlayer(publicId: string, reason: string, room?: string): Promise<void> {
+  const { error } = await client().rpc("report_player", {
+    target_public_id: publicId,
+    target_reason: reason,
+    target_room: room ?? null,
+  });
+  if (error) throw new Error(error.message);
 }
 
 export function publicAvatarFromProfile(profile: PublicPlayer): { character: Character; look: Look } | null {

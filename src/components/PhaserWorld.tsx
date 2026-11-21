@@ -4,10 +4,31 @@ import Phaser from "phaser";
 import AvatarRenderer from "../avatar/AvatarRenderer";
 import type { Character, Look } from "../avatar/catalog";
 
+export type RemoteCityPlayer = {
+  publicId: string;
+  username: string;
+  character: Character;
+  look: Look;
+  x: number;
+  y: number;
+};
+
+type PhaserWorldProps = {
+  character: Character;
+  look: Look;
+  multiplayerEnabled?: boolean;
+  remotePlayers?: readonly RemoteCityPlayer[];
+  onPositionChange?: (position: { x: number; y: number }) => void;
+};
+
 type Direction = "up" | "down" | "left" | "right";
 
 class PlazaScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Container;
+  private readonly remotePlayers = new Map<string, Phaser.GameObjects.Container>();
+  private readonly remoteTargets = new Map<string, { x: number; y: number }>();
+  private readonly remoteAvatarKeys = new Set<string>();
+  private lastSentPosition = 0;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private readonly touchDirections = new Set<Direction>();
@@ -20,7 +41,11 @@ class PlazaScene extends Phaser.Scene {
     new Phaser.Geom.Rectangle(1290, 710, 330, 240),
   ];
 
-  constructor(private readonly avatarTexture: string) {
+  constructor(
+    private readonly avatarTexture: string,
+    private readonly multiplayerEnabled: boolean,
+    private readonly onPositionChange?: (position: { x: number; y: number }) => void,
+  ) {
     super("PlazaScene");
   }
 
@@ -127,10 +152,18 @@ class PlazaScene extends Phaser.Scene {
     const down = this.cursors.down.isDown || this.keys.S.isDown || this.touchDirections.has("down");
     const horizontal = Number(right) - Number(left);
     const vertical = Number(down) - Number(up);
-    if (!horizontal && !vertical) return;
+    if (!horizontal && !vertical) {
+      this.interpolateRemotePlayers(delta);
+      return;
+    }
     const speed = 230 * Math.min(delta, 40) / 1000 / Math.hypot(horizontal, vertical);
     this.movePlayer(horizontal * speed, 0);
     this.movePlayer(0, vertical * speed);
+    this.interpolateRemotePlayers(delta);
+    if (this.multiplayerEnabled && this.onPositionChange && _time - this.lastSentPosition >= 50) {
+      this.lastSentPosition = _time;
+      this.onPositionChange({ x: Math.round(this.player.x), y: Math.round(this.player.y) });
+    }
   }
 
   private movePlayer(dx: number, dy: number) {
@@ -143,9 +176,69 @@ class PlazaScene extends Phaser.Scene {
     );
     if (!blocked) this.player.setPosition(x, y);
   }
+
+  setRemotePlayers(players: readonly RemoteCityPlayer[]) {
+    const liveIds = new Set(players.map((player) => player.publicId));
+    for (const [id, container] of this.remotePlayers) {
+      if (!liveIds.has(id)) {
+        container.destroy(true);
+        this.remotePlayers.delete(id);
+        this.remoteTargets.delete(id);
+      }
+    }
+
+    players.forEach((remote) => {
+      let container = this.remotePlayers.get(remote.publicId);
+      if (!container) {
+        container = this.add.container(remote.x, remote.y).setDepth(4);
+        container.add([
+          this.add.ellipse(0, 25, 38, 12, 0x17121e, 0.45),
+          this.add.circle(0, -13, 11, 0x9d6044).setStrokeStyle(2, 0x24172f),
+          this.add.ellipse(0, 5, 31, 34, 0x72e0c1).setStrokeStyle(3, 0x24172f),
+          this.add.text(0, 43, remote.username.slice(0, 18), {
+            fontFamily: "Arial", fontSize: "10px", color: "#FFF4E6", fontStyle: "bold",
+            backgroundColor: "#24172F", padding: { x: 6, y: 3 },
+          }).setOrigin(0.5),
+        ]);
+        this.remotePlayers.set(remote.publicId, container);
+        const key = `remote-${remote.publicId}`;
+        if (!this.remoteAvatarKeys.has(key)) {
+          this.remoteAvatarKeys.add(key);
+          const markup = renderToStaticMarkup(<AvatarRenderer character={remote.character} look={remote.look}/>)
+            .replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" width="260" height="420" ');
+          this.textures.addBase64(key, `data:image/svg+xml;base64,${btoa(markup)}`);
+          this.textures.once(Phaser.Textures.Events.ADD_KEY, (addedKey: string) => {
+            if (addedKey !== key) return;
+            const active = this.remotePlayers.get(remote.publicId);
+            if (!active) return;
+            active.removeAll(true);
+            active.add([
+              this.add.ellipse(0, 25, 38, 12, 0x17121e, 0.45),
+              this.add.image(0, -4, key).setDisplaySize(76, 122),
+              this.add.text(0, 67, remote.username.slice(0, 18), {
+                fontFamily: "Arial", fontSize: "10px", color: "#FFF4E6", fontStyle: "bold",
+                backgroundColor: "#24172F", padding: { x: 6, y: 3 },
+              }).setOrigin(0.5),
+            ]);
+          });
+        }
+      }
+      this.remoteTargets.set(remote.publicId, { x: remote.x, y: remote.y });
+    });
+  }
+
+  private interpolateRemotePlayers(delta: number) {
+    const blend = Math.min(delta / 90, 1);
+    for (const [id, target] of this.remoteTargets) {
+      const container = this.remotePlayers.get(id);
+      if (!container) continue;
+      container.x = Phaser.Math.Linear(container.x, target.x, blend);
+      container.y = Phaser.Math.Linear(container.y, target.y, blend);
+    }
+  }
 }
 
-export default function PhaserWorld({ character, look }: { character: Character; look: Look }) {
+export default function PhaserWorld({ character, look, multiplayerEnabled = false, remotePlayers = [], onPositionChange }: PhaserWorldProps) {
   const host = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<PlazaScene | null>(null);
   useEffect(() => {
@@ -153,7 +246,7 @@ export default function PhaserWorld({ character, look }: { character: Character;
     const markup = renderToStaticMarkup(<AvatarRenderer character={character} look={look}/>)
       .replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" width="260" height="420" ');
     const avatarTexture = `data:image/svg+xml;base64,${btoa(markup)}`;
-    const scene = new PlazaScene(avatarTexture);
+    const scene = new PlazaScene(avatarTexture, multiplayerEnabled, onPositionChange);
     sceneRef.current = scene;
     const game = new Phaser.Game({
       type: Phaser.AUTO,
@@ -169,7 +262,11 @@ export default function PhaserWorld({ character, look }: { character: Character;
       sceneRef.current = null;
       game.destroy(true);
     };
-  }, [character, look]);
+  }, [character, look, multiplayerEnabled, onPositionChange]);
+
+  useEffect(() => {
+    sceneRef.current?.setRemotePlayers(remotePlayers);
+  }, [remotePlayers]);
 
   const control = (direction: Direction, active: boolean) => sceneRef.current?.setTouchDirection(direction, active);
   return <div className="phaser-frame">
