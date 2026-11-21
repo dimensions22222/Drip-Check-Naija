@@ -332,3 +332,6 @@ At completion, report:
 
 CRITICAL:
 Preserve all existing modules. Do not invent live users, chat messages or online counts. Never expose secrets. Do not claim multiplayer is live until real connections have been tested. Keep single-player mode functional when Supabase is unavailable.
+
+
+dddddddddvccccccccccccccccccccv
