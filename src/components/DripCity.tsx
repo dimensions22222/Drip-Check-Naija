@@ -541,6 +541,15 @@ export default function DripCity(props: Props) {
     setChatError("");
     try {
       const id = await sendCityChatMessage(roomId, cleanBody);
+      const sentMessage: CityChatMessage = {
+        id,
+        room: roomId,
+        senderPublicId: props.myPublicId ?? "",
+        username: props.displayName,
+        body: cleanBody,
+        createdAt: new Date().toISOString(),
+      };
+      setChatMessages((current) => [...current, sentMessage].slice(-40));
       await realtimeChannel.current?.send({
         type: "broadcast",
         event: "chat",
