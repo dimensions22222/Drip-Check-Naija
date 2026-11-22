@@ -17,7 +17,9 @@ This is a browser-first React + TypeScript fashion-game foundation. It runs with
 - Owner-scoped cloud profile/avatar/outfits, public active catalogue reads and owner-only inventory reads
 - Explicit per-outfit local-to-cloud sync; local outfits are not silently imported or discarded
 - Demo battle entry state plus one-vote UI state; the player entry cannot be voted for
-- Single-player Phaser city map with camera-follow movement, keyboard/touch controls, and clearly labelled Nigerian fashion destinations
+- Phaser Drip City map with camera-follow movement, keyboard/touch controls, location rooms, and clearly labelled Nigerian fashion destinations
+- Optional authenticated Supabase Presence and movement Broadcast with remote-avatar interpolation
+- Persisted location chat, player blocking/muting/reporting, reconnect status, and demo fallback
 - Public player discovery/search, privacy-curated public profiles, authenticated follows, and a public outfit showcase with authenticated likes
 - Owner-controlled public avatar sharing; private cloud avatars and saved outfits stay private until explicitly shared
 - Supabase migrations, seed catalog, RLS baseline, social RPCs and documented trust boundaries
@@ -55,6 +57,6 @@ Deploy the generated dist directory to Cloudflare Pages, Netlify, or another sta
 
 - Auth and cloud reads/writes require public Supabase URL/key values and the migrations/seed to be applied.
 - Battle voting, wallet values and submissions are demo-only UI states; trusted operations are not yet implemented.
-- Drip City is a single-player world. It has no real-time multiplayer, chat, online presence, live battle data, or activity feed.
+- Live multiplayer and chat are available only after migrations are applied and two-account testing confirms Presence, Broadcast, room isolation, persistence, and moderation. Private channel authorization remains a release blocker until configured.
 - Follow/showcase database functions require the new social migration to be applied. Paid items require a verified inventory grant before publication; client-side purchase/grant paths remain disabled.
 - The browser catalogue is free/demo content. Inventory grants and item ownership checks for paid/locked content are not implemented.
