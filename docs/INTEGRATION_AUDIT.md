@@ -2,7 +2,7 @@
 
 ## Audit status
 
-The repository is a browser-first demo with an optional Supabase integration. The 20261115-20261120 migrations implement profiles, avatars, outfits, catalogue, inventory, social RPCs, and progression. No Supabase project is linked in this workspace, Supabase CLI is unavailable, and no remote migration or RLS test has been run.
+The repository is a browser-first demo with an optional Supabase integration. The 20261115-20261121 migrations implement profiles, avatars, outfits, catalogue, inventory, social RPCs, progression, and realtime moderation/chat. No migration has been verified against a live database in this workspace, Supabase CLI is unavailable, and no remote migration or RLS test has been run.
 
 ## Findings and fixes
 
