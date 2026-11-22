@@ -91,11 +91,27 @@ begin
   if viewer_id is null then
     raise exception 'Sign in to chat in Drip City.' using errcode = '28000';
   end if;
-  if target_room is null or char_length(target_room) > 80 then
+  if target_room not in (
+    'lagos-fashion-district',
+    'mainland-hangout',
+    'island-style-avenue',
+    'campus-plaza',
+    'naija-market',
+    'rooftop-lounge'
+  ) then
     raise exception 'Invalid Drip City room.' using errcode = '22023';
   end if;
   if char_length(clean_body) not between 1 and 240 then
     raise exception 'Chat messages must be 1 to 240 characters.' using errcode = '22023';
+  end if;
+  if exists (
+    select 1
+    from public.city_chat_messages recent
+    where recent.sender_id = viewer_id
+      and recent.created_at > clock_timestamp() - interval '10 seconds'
+    having count(*) >= 5
+  ) then
+    raise exception 'Slow down; you are sending messages too quickly.' using errcode = '42501';
   end if;
 
   select profile.public_id into sender_public_id
