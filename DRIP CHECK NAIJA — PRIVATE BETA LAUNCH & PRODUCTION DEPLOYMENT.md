@@ -1,290 +1,254 @@
-# DRIP CHECK NAIJA — REAL-TIME MULTIPLAYER DRIP CITY
+# DRIP CHECK NAIJA — PRIVATE BETA LAUNCH & PRODUCTION DEPLOYMENT
 
-You are the lead multiplayer game developer for DRIP CHECK NAIJA, a browser-based Nigerian social fashion game built with React, TypeScript, Vite, Phaser and Supabase.
+You are the lead release engineer for DRIP CHECK NAIJA, a browser-based Nigerian social fashion game built with React, TypeScript, Vite, Phaser and Supabase.
 
-## CURRENT PROJECT STATUS
+Your task is to prepare the existing project for its first private beta release.
 
-The project already includes:
+IMPORTANT: This is a release and integration milestone, not a redesign. Inspect the actual repository and preserve all existing features.
+
+## 1. CURRENT PROJECT
+
+The application includes:
 
 - Avatar Studio with 12 customization categories.
 - Outfit saving and wardrobe management.
-- Fashion Mall and Player Inventory.
+- Fashion Mall.
+- Player Inventory.
 - Fashion Battles foundation.
-- Drip City with Phaser-based exploration.
+- Drip City with Phaser exploration.
 - Public player profiles and discovery.
-- Follow/unfollow functionality.
-- Public outfit showcases and likes.
+- Follows and outfit showcases.
 - Player progression, XP, missions, achievements and streaks.
 - Supabase authentication and database foundation.
-- Database security hardening migration.
-- Vitest testing infrastructure.
+- Realtime multiplayer Presence and movement Broadcast.
+- Persisted location-based chat.
+- Player blocking, muting and reporting.
 
-Recent validation:
+Recent multiplayer implementation added:
+- Location-based rooms.
+- Supabase Presence.
+- Movement synchronization.
+- Chat persistence.
+- Moderation features.
+- Remote avatar interpolation.
+- Offline and connection status.
+
+Recent verification:
 - npm test passed.
 - npm run typecheck passed.
 - npm run build passed.
 - git diff --check passed.
 
-However, no production Supabase project is connected. Remote migrations, authentication and RLS have not been verified.
+However, the new realtime migration has not yet been applied to a real Supabase project, and two-account multiplayer testing has not been completed.
 
-IMPORTANT: Inspect the existing implementation before making changes. Reuse the existing Phaser world, avatar renderer, Supabase client, repositories and navigation. Do not rebuild the application from scratch.
+## 2. RELEASE AUDIT
 
-# CORE OBJECTIVE
+Inspect the complete project before making changes.
 
-Transform Drip City from a single-player environment into a real-time multiplayer social space.
+Review:
+- package.json
+- All source files.
+- All SQL migrations.
+- Supabase configuration.
+- Authentication.
+- RLS policies.
+- Realtime subscriptions.
+- Database types.
+- Environment variables.
+- Build configuration.
+- Deployment configuration.
+- Documentation.
 
-Players should be able to:
+Identify blockers preventing a safe private beta.
 
-1. Enter Drip City.
-2. See other authenticated players online.
-3. See their avatars moving around the city.
-4. Move their own avatars using keyboard or mobile controls.
-5. Communicate through location-based chat.
-6. See player presence updates.
-7. Visit public player profiles.
-8. Interact with other players safely.
+Create docs/PRIVATE_BETA_READINESS.md with:
+- Release checklist.
+- Critical blockers.
+- Security concerns.
+- Required manual configuration.
+- Features that are not production-ready.
 
-The experience should feel like a lively Nigerian virtual fashion community.
+## 3. SUPABASE DEPLOYMENT READINESS
 
-# 1. REAL-TIME PLAYER PRESENCE
+Inspect every migration in chronological order, including:
 
-Use Supabase Realtime Presence if compatible with the existing project.
+- Existing profile and avatar migrations.
+- Fashion catalogue and inventory migrations.
+- Drip City social migration.
+- Progression migration.
+- Backend hardening migration.
+- Realtime multiplayer migration.
 
-Implement:
-- Online player presence.
-- Current city location.
-- Player avatar appearance.
-- Public display name.
-- Current movement state.
-- Join and leave notifications.
-- Reconnection handling.
-- Presence cleanup when players disconnect.
+Verify:
+- Correct migration order.
+- SQL syntax.
+- Foreign keys.
+- Indexes.
+- RLS policies.
+- Grants and permissions.
+- RPC security.
+- Realtime publication configuration.
+- Realtime channel authorization.
 
-Requirements:
-- Only authenticated users can join multiplayer sessions.
-- Never expose email addresses or private account identifiers.
-- Do not trust client-submitted profile information.
-- Load public player appearance from verified public profile data.
-- Prevent duplicate player representations.
-- Handle stale presence gracefully.
+Check that private data cannot be accessed by unauthorized users.
 
-Do not display fake online counts or sample players as real players.
+Do not apply destructive changes or modify production data without explicit authorization.
 
-# 2. SYNCHRONIZED AVATAR MOVEMENT
+If Supabase CLI is available:
+- Validate migrations.
+- Use a local development database if possible.
+- Generate database types.
+- Test critical database functions.
 
-Integrate real-time movement with the existing PhaserWorld.tsx and AvatarRenderer.tsx.
+If it is unavailable, document the exact manual Supabase SQL Editor steps.
 
-Implement:
-- Multiplayer player sprites.
-- Local player movement.
-- Remote player movement interpolation.
-- Camera follow for the local player.
-- Collision with existing buildings and blocked areas.
-- Player name labels.
-- Basic idle and movement states.
-- Proper cleanup when players leave.
+Never claim that migrations have been applied unless verified.
 
-Controls:
-- WASD and arrow keys on desktop.
-- Existing mobile directional controls on mobile.
+## 4. ENVIRONMENT CONFIGURATION
 
-Technical requirements:
-- Broadcast movement at a reasonable frequency.
-- Avoid sending updates every animation frame.
-- Throttle movement broadcasts.
-- Interpolate remote movement to avoid jitter.
-- Validate coordinates against the city map.
-- Prevent players from moving outside permitted walkable areas.
-- Avoid excessive database writes.
-
-Use Realtime Broadcast for transient movement where appropriate. Do not persist every movement update to PostgreSQL.
-
-# 3. CITY LOCATIONS AND ROOMS
-
-Implement multiplayer city locations or rooms.
-
-Suggested locations:
-- Lagos Fashion District.
-- Mainland Hangout.
-- Island Style Avenue.
-- Campus Plaza.
-- Naija Market.
-- Rooftop Lounge.
+Verify that the application uses environment variables correctly.
 
 Requirements:
-- Players can enter available locations.
-- Players only see other players in the same location.
-- Switching locations updates presence correctly.
-- Room channels must be isolated.
-- Leaving a room must clean up subscriptions and presence.
-- Demo locations must remain clearly labelled when not connected to a real backend.
+- .env.example contains placeholders only.
+- .env.local is ignored by Git.
+- No service-role key appears in browser code.
+- No secrets are committed.
+- Production and development environments are clearly separated.
 
-Do not claim separate server-authoritative rooms if the implementation only uses client-side labels.
+Document the required variables, including:
+- VITE_SUPABASE_URL
+- VITE_SUPABASE_ANON_KEY or the supported publishable key.
 
-# 4. REAL-TIME LOCATION CHAT
+Do not invent credentials.
 
-Build a location-based chat panel.
+## 5. REAL ACCOUNT TESTING
 
-Features:
-- Send messages.
-- Receive messages in real time.
-- Display sender's public display name.
-- Display message timestamps.
-- Scroll through recent messages.
-- Show connection status.
-- Show empty and loading states.
+Prepare an end-to-end testing checklist using two separate authenticated accounts.
 
-Security and moderation:
-- Authenticated users only.
-- Enforce server-side message length limits.
-- Sanitize displayed content.
-- Prevent spam and message flooding.
-- Add rate limiting.
-- Prevent unauthorized message deletion or editing.
-- Prevent users from impersonating another player.
-- Restrict message access to the relevant location.
-- Never expose private messages through public queries.
+Test:
 
-Use a secure persistence strategy with RLS or trusted server-side functions.
+ACCOUNT:
+- Sign-up.
+- Sign-in.
+- Sign-out.
+- Session persistence.
+- Email confirmation where configured.
 
-Do not rely on client-side validation alone.
+AVATAR:
+- Customize avatar.
+- Save outfit.
+- Refresh.
+- Confirm persistence.
 
-# 5. MODERATION AND PLAYER SAFETY
+MALL AND INVENTORY:
+- Catalogue loading.
+- Ownership verification.
+- Equip and unequip.
+- Preview cancellation.
+- Prevent unauthorized item grants.
 
-Implement basic community safety tools.
+SOCIAL:
+- Public profiles.
+- Follow and unfollow.
+- Outfit publishing.
+- Likes.
+- Blocking and reporting.
+
+PROGRESSION:
+- XP awards.
+- Duplicate event prevention.
+- Mission completion.
+- Achievement unlocking.
+- Streak boundaries.
+- Reward claim security.
+
+MULTIPLAYER:
+- Both accounts enter the same city room.
+- Each sees the other player's avatar.
+- Movement synchronizes.
+- Location switching works.
+- Chat messages are delivered and persisted.
+- Blocking and muting behave correctly.
+- Disconnect and reconnect work.
+- Different rooms remain isolated.
+
+Record what was actually tested. Do not fabricate successful results.
+
+## 6. DEPLOYMENT
+
+Inspect the project and recommend a suitable deployment platform compatible with React, Vite, Phaser and Supabase.
+
+Consider Vercel, Netlify or another suitable platform.
+
+Do not assume the user has already connected GitHub or configured a hosting account.
+
+Prepare:
+- Production build configuration.
+- SPA fallback/rewrites for client-side routing.
+- Environment variable instructions.
+- Deployment documentation.
+- Production URL configuration guidance.
+- Supabase Auth redirect URL instructions.
+
+Do not publish the project publicly without explicit authorization.
+
+If deployment credentials or access are unavailable, prepare the deployment configuration and precise instructions rather than pretending deployment succeeded.
+
+## 7. PERFORMANCE AND MOBILE TESTING
+
+Inspect:
+- Phaser bundle size.
+- Lazy loading.
+- Asset loading.
+- Initial page performance.
+- Realtime message frequency.
+- Memory leaks.
+- Subscription cleanup.
+- Mobile controls.
+- Responsive navigation.
+
+Verify layouts at:
+- 320px.
+- 375px.
+- 390px.
+- Desktop widths.
+
+Fix meaningful issues without removing existing functionality.
+
+## 8. PLAYER ONBOARDING
+
+Prepare a polished first-time player experience.
 
 Include:
-- Report player.
-- Report message.
-- Block player.
-- Mute player locally.
-- Basic moderation status.
-- Admin-only moderation actions.
+- Welcome screen.
+- Account creation and sign-in.
+- Display-name setup.
+- Avatar creation.
+- Introductory navigation.
+- Guidance for entering Drip City.
+- Explanation of Fashion Mall and Inventory.
+- Explanation of Fashion Battles and progression.
 
-Create a reporting flow that records:
-- Report category.
-- Reported player or message.
-- Optional explanation.
-- Submission timestamp.
-- Review status.
+Do not force players through unnecessary onboarding if they already have an account and saved avatar.
 
-Requirements:
-- Players cannot view private reports submitted by others.
-- Players cannot modify moderation outcomes.
-- Admin actions must require trusted authorization.
-- Do not expose service-role credentials.
-- Avoid creating a browser-side admin privilege system.
+## 9. BETA SAFETY
 
-If full moderation infrastructure is too large for this milestone, implement reporting safely and document the remaining administrative workflow.
+Clearly distinguish implemented features from unfinished ones.
 
-# 6. PLAYER INTERACTIONS
+Check:
+- Purchase functionality remains disabled unless securely implemented.
+- No fake wallet balances.
+- No fabricated rewards.
+- No fake online player counts.
+- No demo data presented as live data.
+- No unsupported battle results.
+- No exposed private player information.
 
-Where appropriate, support:
-- Clicking another avatar to view their public profile.
-- Following a player.
-- Viewing their public outfit showcase.
-- Basic interaction indicators.
+Add a way to report technical issues during beta.
 
-Reuse existing social features rather than duplicating them.
+Do not add payment processing during this milestone.
 
-Do not implement unrestricted direct messaging unless secure private-message infrastructure is properly designed.
-
-# 7. SUPABASE REALTIME ARCHITECTURE
-
-Inspect the existing Supabase configuration and determine which Realtime features are available.
-
-Use:
-- Supabase Realtime Presence for online player state.
-- Supabase Realtime Broadcast for transient movement.
-- PostgreSQL for persisted chat messages and reports.
-- RLS for private data protection.
-
-Add migrations only where required.
-
-Potential additional structures:
-- city_chat_messages
-- player_reports
-- player_blocks
-- moderation_actions
-
-Requirements:
-- Appropriate indexes.
-- Foreign keys.
-- Unique constraints where needed.
-- Strict RLS.
-- Restricted grants.
-- Safe function permissions.
-- Room/location membership validation.
-
-Never expose the Supabase service-role key in browser code.
-
-Do not assume the Supabase project has Realtime enabled. Document any required dashboard configuration.
-
-# 8. NETWORK RESILIENCE
-
-Handle:
-- Lost internet connection.
-- Realtime subscription errors.
-- Session expiration.
-- Reconnection.
-- Player disconnects.
-- Empty locations.
-- Chat delivery failures.
-- Duplicate messages.
-- Stale player positions.
-
-Display a clear connection indicator:
-- Connecting.
-- Connected.
-- Reconnecting.
-- Offline.
-
-Do not present a message as delivered until the appropriate backend confirmation is received.
-
-# 9. PERFORMANCE
-
-Optimize multiplayer for ordinary mobile devices and desktop browsers.
-
-Requirements:
-- Lazy-load Phaser where appropriate.
-- Throttle movement broadcasts.
-- Limit visible remote players.
-- Limit chat history queries.
-- Avoid excessive React state updates.
-- Clean up subscriptions and listeners.
-- Avoid memory leaks.
-- Preserve existing collision and camera behavior.
-
-Document any tested player-count limitations.
-
-# 10. DEMO AND OFFLINE MODE
-
-When Supabase is unavailable:
-- Keep the existing single-player Drip City working.
-- Clearly label multiplayer as unavailable or demo-only.
-- Do not invent live players.
-- Do not simulate real chat messages.
-- Do not show fabricated online counts.
-- Provide a useful connection/setup message.
-- Preserve existing navigation and local features.
-
-# 11. TESTING
-
-Add meaningful tests for:
-- Presence initialization and cleanup.
-- Player joining and leaving.
-- Location switching.
-- Movement throttling.
-- Coordinate validation.
-- Remote player interpolation.
-- Chat input validation.
-- Duplicate message prevention.
-- Report submission.
-- Block and mute behavior.
-- Reconnection.
-- Subscription cleanup.
-
-Where possible, test using two separate authenticated accounts and separate browser sessions.
+## 10. TESTING AND VALIDATION
 
 Run:
 - npm test
@@ -292,46 +256,32 @@ Run:
 - npm run build
 - git diff --check
 
-Do not claim live multiplayer works unless it has actually been tested with a configured Supabase project and separate accounts.
+Add tests for important release blockers where practical.
 
-# 12. DOCUMENTATION
+Do not overwrite unrelated workspace changes.
 
-Update:
-- README.md
-- ARCHITECTURE.md
-- BACKEND_SECURITY.md
-- SUPABASE_SETUP.md
+## 11. FINAL REPORT
 
-Add a dedicated DRIP_CITY_MULTIPLAYER.md explaining:
-- Realtime architecture.
-- Presence payload.
-- Movement synchronization.
-- Location channels.
-- Chat persistence.
-- Moderation.
-- RLS.
-- Dashboard configuration.
-- Environment variables.
-- Testing with two accounts.
-- Known limitations.
+Provide:
 
-# 13. FINAL REPORT
+1. Release readiness assessment.
+2. Critical issues discovered.
+3. Issues fixed.
+4. Files created and modified.
+5. Migration validation status.
+6. Supabase connectivity status.
+7. Two-account multiplayer test status.
+8. Deployment platform recommendation.
+9. Build and test results.
+10. Exact manual setup still required.
+11. Whether the project is ready for private beta.
 
-At completion, report:
+Use one of these statuses:
+- NOT READY
+- READY FOR STAGING
+- READY FOR PRIVATE BETA
 
-1. Multiplayer features implemented.
-2. Files created and modified.
-3. Database migrations created.
-4. Realtime architecture used.
-5. Chat and moderation security.
-6. Whether Supabase Realtime was configured.
-7. Whether two-account multiplayer was tested.
-8. Build and test results.
-9. Known performance limitations.
-10. Remaining manual configuration.
+Never claim production readiness without evidence.
 
 CRITICAL:
-Preserve all existing modules. Do not invent live users, chat messages or online counts. Never expose secrets. Do not claim multiplayer is live until real connections have been tested. Keep single-player mode functional when Supabase is unavailable.
-
-
-ynvjh
+Do not invent credentials, successful deployments, database migrations or test results. Preserve the existing game. Prioritize security, stability and a working player experience over adding new features.
