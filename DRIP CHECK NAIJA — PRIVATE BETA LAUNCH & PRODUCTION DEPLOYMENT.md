@@ -289,4 +289,9 @@ Do not invent credentials, successful deployments, database migrations or test r
 
 
 
-iiiiiiiiiiiiiiiiiiii
+iiiiiiiiiiiiiiiii
+git add .
+
+git commit -m "next"
+
+git push origin main
