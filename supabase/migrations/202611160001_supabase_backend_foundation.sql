@@ -17,6 +17,9 @@ create table public.avatars (
   updated_at timestamptz not null default now()
 );
 
+alter table public.player_inventory drop constraint if exists player_inventory_item_id_fkey;
+alter table public.player_inventory drop constraint if exists player_inventory_pkey;
+
 alter table public.fashion_items rename column id to slug;
 alter table public.fashion_items drop constraint fashion_items_pkey;
 alter table public.fashion_items add column id uuid not null default gen_random_uuid();
@@ -31,8 +34,6 @@ alter table public.fashion_items alter column metadata set default '{}'::jsonb;
 alter table public.fashion_items alter column metadata set not null;
 update public.fashion_items set active = false where slug = 'acc-chain';
 
-alter table public.player_inventory drop constraint if exists player_inventory_item_id_fkey;
-alter table public.player_inventory drop constraint if exists player_inventory_pkey;
 alter table public.player_inventory add column fashion_item_id uuid;
 update public.player_inventory inventory
 set fashion_item_id = item.id
