@@ -1,6 +1,6 @@
 # Private Beta Readiness
 
-Status: **NOT READY**
+Status: **READY FOR STAGING**
 
 This assessment is evidence-based. The repository is locally buildable, but live Supabase connectivity, migration application, Auth configuration, RLS, realtime authorization, and two-account multiplayer testing remain unverified.
 
@@ -25,16 +25,21 @@ This assessment is evidence-based. The repository is locally buildable, but live
 - `git diff --check`: passed.
 - Supabase CLI: unavailable in this environment.
 
-## Critical blockers
+## Staging activation completed
 
-1. Migration `202611210001_drip_city_realtime.sql` has not been applied to a live database.
-2. The Supabase projects visible to the configured connector are inactive.
-3. No Supabase URL, publishable/anon key, or credentials were added to the repository.
-4. Two separate authenticated accounts have not been used to test multiplayer.
-5. Realtime channel authorization/private topics have not been verified on a live project.
-6. RLS and RPC behavior are not proven against live Auth sessions.
-7. Email confirmation and production Auth redirect URLs are not configured.
-8. Mobile, reconnect, and real-network multiplayer behavior are not verified.
+- Restored and activated the `projectx` staging project (`fmfhadxoqhixcaqpkgos`).
+- Applied the initial, foundation, catalogue, social, progression, hardening, realtime, and staging security migrations.
+- Added staging browser environment values to the ignored `.env.local` file.
+- The project URL and publishable key are public-browser configuration only.
+
+## Remaining blockers
+
+1. Two separate authenticated accounts have not been used to test multiplayer.
+2. Realtime private-channel authorization remains to be verified.
+3. RLS and RPC behavior are not proven through live Auth sessions.
+4. Email confirmation and production/staging Auth redirect URLs are not configured.
+5. Mobile, reconnect, and real-network multiplayer behavior are not verified.
+6. Staging deployment is not connected or published.
 
 ## Security concerns
 
@@ -134,6 +139,6 @@ No public deployment or credential operation has been performed.
 
 ## Final assessment
 
-**NOT READY** for private beta.
+**READY FOR STAGING**.
 
-The app has a credible local implementation and build baseline, but private-beta release requires a live staging database, migration application evidence, Auth configuration, RLS/realtime verification, and two-account testing.
+The staging database is restored and healthy, migrations are applied, the catalogue is seeded, and public publishable browser configuration is installed locally. Private-beta release still requires two-account RLS/realtime testing, Auth redirect verification, and deployed staging validation.

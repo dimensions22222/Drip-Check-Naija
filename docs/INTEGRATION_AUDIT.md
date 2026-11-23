@@ -20,4 +20,4 @@ Owner checks and duplicate prevention remain in RLS and fixed-search-path securi
 
 ## Verification limits
 
-No live authentication or RLS test was possible in this workspace. The application build and unit tests can be run locally, but private-beta readiness requires a real Supabase project, two test accounts, migration application, dashboard Auth configuration, and manual RLS verification.
+The staging project `projectx` (`fmfhadxoqhixcaqpkgos`) is restored and migrations are applied. Live authentication and RLS testing still require separate browser sessions and dashboard Auth redirect configuration. Private-beta readiness also requires two-account realtime verification.

@@ -1,6 +1,6 @@
 # Supabase setup
 
-The browser integration is optional. The app remains usable in local/demo mode when project settings are absent or invalid. This workspace has not been linked to a Supabase project; no migration has been applied remotely.
+The browser integration is optional. The app remains usable in local/demo mode when project settings are absent or invalid. Staging project `projectx` (`fmfhadxoqhixcaqpkgos`) is restored and migrations have been applied there; live browser-session testing is still required.
 
 ## 1. Create or select a project
 
@@ -67,7 +67,7 @@ Use the Account button to create an account, confirm email if requested, sign in
 
 ## 6. Check row-level security
 
-The repository has no configured project or local Supabase stack, so RLS has not been exercised against a live database here. Do not use the SQL editor as an RLS test: dashboard SQL commonly runs with elevated privileges.
+The staging project `projectx` (`fmfhadxoqhixcaqpkgos`) has been restored and the migrations applied. RLS still has not been exercised through separate live browser sessions; do not use the SQL editor as an RLS test because dashboard SQL commonly runs with elevated privileges.
 
 For a manual check, create two test users through the app and use separate browser profiles:
 
