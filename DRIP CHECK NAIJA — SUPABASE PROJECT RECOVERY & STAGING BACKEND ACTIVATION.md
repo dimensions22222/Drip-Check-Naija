@@ -286,4 +286,3 @@ Never claim production readiness without evidence.
 CRITICAL:
 Do not invent credentials, successful deployments, database migrations or test results. Preserve the existing game. Prioritize security, stability and a working player experience over adding new features.
 
-
