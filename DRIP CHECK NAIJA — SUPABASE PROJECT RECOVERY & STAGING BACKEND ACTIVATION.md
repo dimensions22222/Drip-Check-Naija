@@ -1,288 +1,269 @@
-# DRIP CHECK NAIJA — PRIVATE BETA LAUNCH & PRODUCTION DEPLOYMENT
+# DRIP CHECK NAIJA — REAL STAGING VALIDATION & TWO-PLAYER ACCEPTANCE TEST
 
-You are the lead release engineer for DRIP CHECK NAIJA, a browser-based Nigerian social fashion game built with React, TypeScript, Vite, Phaser and Supabase.
+Act as the lead QA engineer, Supabase security engineer and multiplayer integration specialist for DRIP CHECK NAIJA.
 
-Your task is to prepare the existing project for its first private beta release.
+Your task is to validate the actual connected Supabase staging environment and prepare the application for private beta.
 
-IMPORTANT: This is a release and integration milestone, not a redesign. Inspect the actual repository and preserve all existing features.
+## CURRENT PROJECT STATUS
 
-## 1. CURRENT PROJECT
+Supabase staging has been activated.
 
-The application includes:
+Project:
+- Project name: projectx
+- Project reference: fmfhadxoqhixcaqpkgos
+- Status: ACTIVE_HEALTHY
 
-- Avatar Studio with 12 customization categories.
-- Outfit saving and wardrobe management.
-- Fashion Mall.
-- Player Inventory.
-- Fashion Battles foundation.
-- Drip City with Phaser exploration.
-- Public player profiles and discovery.
-- Follows and outfit showcases.
-- Player progression, XP, missions, achievements and streaks.
-- Supabase authentication and database foundation.
-- Realtime multiplayer Presence and movement Broadcast.
-- Persisted location-based chat.
-- Player blocking, muting and reporting.
+Completed:
+- Repository migrations applied.
+- Fashion seed applied.
+- Staging environment configured in ignored .env.local.
+- Realtime publication includes city_chat_messages.
 
-Recent multiplayer implementation added:
-- Location-based rooms.
-- Supabase Presence.
-- Movement synchronization.
-- Chat persistence.
-- Moderation features.
-- Remote avatar interpolation.
-- Offline and connection status.
-
-Recent verification:
+Previous verification:
 - npm test passed.
 - npm run typecheck passed.
 - npm run build passed.
+- Staging HTTP smoke test returned 200.
 - git diff --check passed.
 
-However, the new realtime migration has not yet been applied to a real Supabase project, and two-account multiplayer testing has not been completed.
+Remaining:
+- Configure Auth redirect and email confirmation URLs.
+- Test real sign-up and sign-in.
+- Test RLS and RPC permissions.
+- Test chat and moderation.
+- Test multiplayer with two authenticated accounts.
+- Verify private Realtime channel authorization.
 
-## 2. RELEASE AUDIT
+IMPORTANT:
+The staging project is real, but do not assume that HTTP 200 means authentication, database security or multiplayer works correctly.
 
-Inspect the complete project before making changes.
+Inspect the actual repository and connected staging configuration before testing.
 
-Review:
-- package.json
-- All source files.
-- All SQL migrations.
-- Supabase configuration.
-- Authentication.
-- RLS policies.
-- Realtime subscriptions.
-- Database types.
-- Environment variables.
-- Build configuration.
-- Deployment configuration.
-- Documentation.
+# 1. STAGING CONNECTION VERIFICATION
 
-Identify blockers preventing a safe private beta.
+Verify that:
+- The application reads the correct staging Supabase URL.
+- The frontend uses only the publishable/anon key.
+- No service-role key is bundled into the frontend.
+- The environment configuration is correct.
+- The Supabase client connects successfully.
+- Database queries return expected results.
+- Realtime subscriptions can connect.
 
-Create docs/PRIVATE_BETA_READINESS.md with:
-- Release checklist.
-- Critical blockers.
-- Security concerns.
-- Required manual configuration.
-- Features that are not production-ready.
+Do not print secrets or expose credentials in logs or reports.
 
-## 3. SUPABASE DEPLOYMENT READINESS
+# 2. AUTHENTICATION TESTING
 
-Inspect every migration in chronological order, including:
+Inspect the existing authentication implementation.
 
-- Existing profile and avatar migrations.
-- Fashion catalogue and inventory migrations.
-- Drip City social migration.
-- Progression migration.
-- Backend hardening migration.
-- Realtime multiplayer migration.
-
-Verify:
-- Correct migration order.
-- SQL syntax.
-- Foreign keys.
-- Indexes.
-- RLS policies.
-- Grants and permissions.
-- RPC security.
-- Realtime publication configuration.
-- Realtime channel authorization.
-
-Check that private data cannot be accessed by unauthorized users.
-
-Do not apply destructive changes or modify production data without explicit authorization.
-
-If Supabase CLI is available:
-- Validate migrations.
-- Use a local development database if possible.
-- Generate database types.
-- Test critical database functions.
-
-If it is unavailable, document the exact manual Supabase SQL Editor steps.
-
-Never claim that migrations have been applied unless verified.
-
-## 4. ENVIRONMENT CONFIGURATION
-
-Verify that the application uses environment variables correctly.
-
-Requirements:
-- .env.example contains placeholders only.
-- .env.local is ignored by Git.
-- No service-role key appears in browser code.
-- No secrets are committed.
-- Production and development environments are clearly separated.
-
-Document the required variables, including:
-- VITE_SUPABASE_URL
-- VITE_SUPABASE_ANON_KEY or the supported publishable key.
-
-Do not invent credentials.
-
-## 5. REAL ACCOUNT TESTING
-
-Prepare an end-to-end testing checklist using two separate authenticated accounts.
-
-Test:
-
-ACCOUNT:
+Prepare and execute tests for:
 - Sign-up.
 - Sign-in.
 - Sign-out.
-- Session persistence.
-- Email confirmation where configured.
+- Session restoration after refresh.
+- Email confirmation.
+- Expired sessions.
+- Redirect handling.
+- Profile creation.
 
-AVATAR:
-- Customize avatar.
-- Save outfit.
-- Refresh.
-- Confirm persistence.
+Configure the application for the actual staging URL.
 
-MALL AND INVENTORY:
-- Catalogue loading.
-- Ownership verification.
-- Equip and unequip.
-- Preview cancellation.
-- Prevent unauthorized item grants.
+If dashboard configuration is required, provide the exact settings the user must enter.
 
-SOCIAL:
-- Public profiles.
-- Follow and unfollow.
-- Outfit publishing.
-- Likes.
-- Blocking and reporting.
+Do not invent successful authentication results.
 
-PROGRESSION:
+# 3. TWO-ACCOUNT TESTING
+
+Prepare a repeatable test using two genuinely separate accounts.
+
+Account A and Account B must use separate authenticated sessions, preferably separate browser profiles.
+
+Verify:
+
+- Both accounts can sign in.
+- Both can enter Drip City.
+- Both can see each other's online presence.
+- Both can see each other's avatars.
+- Account A can move and Account B sees the movement.
+- Account B can move and Account A sees the movement.
+- Both can enter different locations.
+- Players in different locations cannot see each other's room chat.
+- Reconnection restores presence correctly.
+
+If browser automation is available, use it. Otherwise, prepare precise manual test instructions.
+
+Do not simulate a second authenticated account with fabricated local data.
+
+# 4. REALTIME AUTHORIZATION SECURITY
+
+Inspect and test:
+- Presence channels.
+- Movement Broadcast channels.
+- Private room access.
+- Location-based channel isolation.
+- Chat subscriptions.
+- Authentication requirements.
+
+Attempt unauthorized access using an account that should not have permission.
+
+Verify that:
+- Unauthenticated users cannot access protected rooms.
+- Users cannot impersonate other players.
+- Users cannot subscribe to unauthorized private rooms.
+- Private channel authorization is enforced server-side.
+- Disconnecting a user removes stale presence.
+
+Fix confirmed vulnerabilities.
+
+# 5. CHAT AND MODERATION TESTING
+
+Using two accounts, test:
+
+- Sending a message.
+- Receiving messages.
+- Persisted message history.
+- Room isolation.
+- Message length restrictions.
+- Rate limiting.
+- Blocking.
+- Muting.
+- Reporting a player.
+- Reporting a message.
+
+Verify that a blocked player cannot continue interacting in ways prohibited by the implementation.
+
+Check that users cannot modify another user's messages or moderation reports.
+
+Do not claim moderation works unless tested.
+
+# 6. DATABASE RLS AND RPC SECURITY
+
+Audit the actual staging database.
+
+Test:
+- Public profile visibility.
+- Private profile protection.
+- Outfit ownership.
+- Inventory ownership.
+- Social follows.
+- Outfit likes.
+- Progression events.
 - XP awards.
-- Duplicate event prevention.
-- Mission completion.
+- Mission claims.
 - Achievement unlocking.
-- Streak boundaries.
-- Reward claim security.
+- Chat access.
+- Player reports.
 
-MULTIPLAYER:
-- Both accounts enter the same city room.
-- Each sees the other player's avatar.
-- Movement synchronizes.
-- Location switching works.
-- Chat messages are delivered and persisted.
-- Blocking and muting behave correctly.
-- Disconnect and reconnect work.
-- Different rooms remain isolated.
+Attempt unauthorized reads and writes with Account A and Account B.
 
-Record what was actually tested. Do not fabricate successful results.
+Verify that users cannot:
+- Read another user's private data.
+- Grant themselves inventory.
+- Change their own XP or level.
+- Claim another user's rewards.
+- Change vote totals.
+- Modify another user's outfits.
+- Impersonate another player.
+- Access private reports.
 
-## 6. DEPLOYMENT
+Do not assume a policy is secure merely because it exists in SQL. Test actual behavior.
 
-Inspect the project and recommend a suitable deployment platform compatible with React, Vite, Phaser and Supabase.
+# 7. END-TO-END GAME JOURNEYS
 
-Consider Vercel, Netlify or another suitable platform.
+Test the following:
 
-Do not assume the user has already connected GitHub or configured a hosting account.
+A. Create account and complete onboarding.
 
-Prepare:
-- Production build configuration.
-- SPA fallback/rewrites for client-side routing.
-- Environment variable instructions.
-- Deployment documentation.
-- Production URL configuration guidance.
-- Supabase Auth redirect URL instructions.
+B. Customize avatar and save an outfit.
 
-Do not publish the project publicly without explicit authorization.
+C. Open Fashion Mall and preview an item.
 
-If deployment credentials or access are unavailable, prepare the deployment configuration and precise instructions rather than pretending deployment succeeded.
+D. Open Inventory and equip an owned item.
 
-## 7. PERFORMANCE AND MOBILE TESTING
+E. Enter Drip City.
 
-Inspect:
-- Phaser bundle size.
-- Lazy loading.
-- Asset loading.
-- Initial page performance.
-- Realtime message frequency.
-- Memory leaks.
-- Subscription cleanup.
-- Mobile controls.
-- Responsive navigation.
+F. Join a multiplayer location with Account B.
 
-Verify layouts at:
-- 320px.
-- 375px.
-- 390px.
-- Desktop widths.
+G. Move around and exchange chat messages.
 
-Fix meaningful issues without removing existing functionality.
+H. Follow another player and view their public profile.
 
-## 8. PLAYER ONBOARDING
+I. Publish a public outfit showcase.
 
-Prepare a polished first-time player experience.
+J. Complete an eligible progression activity and verify server-side XP.
+
+K. Refresh and verify persisted state.
+
+Only test features that are actually implemented. Record unsupported or incomplete features.
+
+# 8. FIX AND DOCUMENT ISSUES
+
+Fix confirmed staging integration bugs without replacing working systems.
+
+Create:
+
+docs/STAGING_ACCEPTANCE_TESTS.md
+
+docs/STAGING_SECURITY_RESULTS.md
 
 Include:
-- Welcome screen.
-- Account creation and sign-in.
-- Display-name setup.
-- Avatar creation.
-- Introductory navigation.
-- Guidance for entering Drip City.
-- Explanation of Fashion Mall and Inventory.
-- Explanation of Fashion Battles and progression.
+- Test name.
+- Expected result.
+- Actual result.
+- PASS, FAIL or NOT TESTED.
+- Evidence or explanation.
+- Fix applied where relevant.
 
-Do not force players through unnecessary onboarding if they already have an account and saved avatar.
+Do not expose account passwords, tokens or personal information in documentation.
 
-## 9. BETA SAFETY
+# 9. AUTOMATED TESTING
 
-Clearly distinguish implemented features from unfinished ones.
+Where practical, add automated integration tests for:
+- Authentication state.
+- Repository queries.
+- Ownership checks.
+- RLS permissions.
+- Realtime connection handling.
+- Room isolation.
+- Chat authorization.
+- Duplicate event protection.
 
-Check:
-- Purchase functionality remains disabled unless securely implemented.
-- No fake wallet balances.
-- No fabricated rewards.
-- No fake online player counts.
-- No demo data presented as live data.
-- No unsupported battle results.
-- No exposed private player information.
+Use real staging integration tests only when safely configured.
 
-Add a way to report technical issues during beta.
-
-Do not add payment processing during this milestone.
-
-## 10. TESTING AND VALIDATION
+Never silently replace real backend tests with mocks and report them as live staging tests.
 
 Run:
-- npm test
-- npm run typecheck
-- npm run build
-- git diff --check
 
-Add tests for important release blockers where practical.
+npm test
+npm run typecheck
+npm run build
+git diff --check
 
-Do not overwrite unrelated workspace changes.
-
-## 11. FINAL REPORT
+# 10. FINAL REPORT
 
 Provide:
 
-1. Release readiness assessment.
-2. Critical issues discovered.
-3. Issues fixed.
-4. Files created and modified.
-5. Migration validation status.
-6. Supabase connectivity status.
-7. Two-account multiplayer test status.
-8. Deployment platform recommendation.
-9. Build and test results.
-10. Exact manual setup still required.
-11. Whether the project is ready for private beta.
+1. Staging connection status.
+2. Authentication results.
+3. Two-account multiplayer results.
+4. Realtime authorization results.
+5. Chat and moderation results.
+6. RLS and RPC security results.
+7. End-to-end journey results.
+8. Bugs discovered and fixed.
+9. Files created and modified.
+10. Build and test results.
+11. Remaining manual configuration.
+12. Private beta readiness assessment.
 
 Use one of these statuses:
 - NOT READY
-- READY FOR STAGING
+- STAGING VALIDATED
 - READY FOR PRIVATE BETA
 
-Never claim production readiness without evidence.
-
 CRITICAL:
-Do not invent credentials, successful deployments, database migrations or test results. Preserve the existing game. Prioritize security, stability and a working player experience over adding new features.
+Do not fabricate test accounts, successful logins, multiplayer connections or security results.
 
+If you cannot access a browser or perform a test, mark it NOT TESTED and give the user exact instructions to perform it manually.
+
+Never expose secrets. Do not deploy publicly during this milestone. Preserve all existing features.
