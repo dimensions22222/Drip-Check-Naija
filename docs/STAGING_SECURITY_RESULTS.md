@@ -2,7 +2,7 @@
 
 ## Overall status
 
-**NOT READY FOR PRIVATE BETA**
+**SECURITY FIXES IMPLEMENTED — TESTING REQUIRED**
 
 Static repository review and read-only staging checks passed only for configuration shape and database publication. Live authenticated RLS and realtime authorization tests were not possible in this pass.
 
@@ -22,14 +22,14 @@ No secrets or test credentials are recorded here.
 
 ## Security findings
 
-### Realtime channels are not private by configuration
+### Realtime channels require owner-level policy migration
 
 - **Severity:** Release blocker
-- **Result:** FAIL until live verification and server authorization are added
-- **Evidence:** Drip City creates `drip-city:<roomId>` channels without `config: { private: true }`. The migration does not add Realtime authorization policies for `realtime.messages`.
+- **Result:** SECURITY FIXES IMPLEMENTED — TESTING REQUIRED
+- **Evidence:** Drip City now requests `private: true` and the repository migration allowlists protected room topics. A staging migration attempt was rejected because the available database role does not own `realtime.messages`.
 - **Impact:** Direct SDK users may attempt to subscribe or broadcast on known room topic names if channel access is not otherwise restricted.
-- **Fix applied:** None; the README already identifies private-channel authorization as a release blocker.
-- **Required fix:** Define authenticated/private Realtime channel authorization for room topics and movement/presence events. Keep room isolation and reject mismatched public IDs server-side. Live testing must confirm anonymous subscribers and cross-room subscribers fail.
+- **Fix applied:** Added private-channel client configuration and `202611250001_drip_city_realtime_authorization.sql`.
+- **Required owner action:** Apply the migration in the Supabase SQL editor under an owner role, then disable public Realtime access in project settings.
 
 ### Chat and moderation SQL exists but is untested live
 
@@ -70,4 +70,4 @@ Configure in the `projectx` dashboard:
 
 ## Private beta readiness
 
-**NOT READY**
+**SECURITY FIXES IMPLEMENTED — TESTING REQUIRED**

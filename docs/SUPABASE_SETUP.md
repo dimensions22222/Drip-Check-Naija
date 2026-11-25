@@ -43,6 +43,17 @@ supabase db push --dry-run
 supabase db push
 ```
 
+## 3A. Configure private Drip City Realtime
+
+Apply `202611250001_drip_city_realtime_authorization.sql` through the Supabase SQL editor or as a migration role that owns `realtime.messages`. The migration:
+
+- Enables RLS policies for authenticated Drip City Broadcast and Presence channels.
+- Restricts channels to the six known `drip-city:<room>` topics.
+- Requires a matching `player_profiles.public_id` for Presence and Broadcast writes.
+- Revokes anonymous access to `realtime.messages`.
+
+In Realtime project settings, disable public access if the dashboard exposes that switch. The browser channel now uses `private: true`; public access must not be used as a security substitute.
+
 Alternatively, run the SQL files in the exact order above in the project SQL editor, then run `supabase/seed.sql`. Apply the seed only after the migrations. The seed contains public zero-price catalogue examples; it creates no user inventory or currency. Verify the migration history and table definitions in the dashboard. Do not run these commands against a production project without reviewing the target and current schema first.
 
 ## 4. Configure email authentication

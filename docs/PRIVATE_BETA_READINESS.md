@@ -1,6 +1,6 @@
 # Private Beta Readiness
 
-Status: **READY FOR STAGING**
+Status: **SECURITY FIXES IMPLEMENTED — TESTING REQUIRED**
 
 This assessment is evidence-based. The repository is locally buildable, but live Supabase connectivity, migration application, Auth configuration, RLS, realtime authorization, and two-account multiplayer testing remain unverified.
 
@@ -35,7 +35,7 @@ This assessment is evidence-based. The repository is locally buildable, but live
 ## Remaining blockers
 
 1. Two separate authenticated accounts have not been used to test multiplayer.
-2. Realtime private-channel authorization remains to be verified.
+2. Apply the owner-level Realtime migration and verify private-channel authorization.
 3. RLS and RPC behavior are not proven through live Auth sessions.
 4. Email confirmation and production/staging Auth redirect URLs are not configured.
 5. Mobile, reconnect, and real-network multiplayer behavior are not verified.
@@ -139,6 +139,6 @@ No public deployment or credential operation has been performed.
 
 ## Final assessment
 
-**READY FOR STAGING**.
+**SECURITY FIXES IMPLEMENTED — TESTING REQUIRED**.
 
 The staging database is restored and healthy, migrations are applied, the catalogue is seeded, and public publishable browser configuration is installed locally. Private-beta release still requires two-account RLS/realtime testing, Auth redirect verification, and deployed staging validation.

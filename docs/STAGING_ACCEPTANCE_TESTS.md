@@ -2,7 +2,7 @@
 
 ## Status
 
-**NOT READY FOR PRIVATE BETA**
+**SECURITY FIXES IMPLEMENTED — TESTING REQUIRED**
 
 No real test accounts or browser sessions were available during this validation pass. Authentication, two-account multiplayer, chat, moderation, and browser RLS behavior remain NOT TESTED. All passwords and tokens are excluded from this document.
 
@@ -15,6 +15,7 @@ No real test accounts or browser sessions were available during this validation 
 | Key matches dashboard | Exact dashboard key is bundled locally | Initial key mismatch was found and corrected | PASS after fix | Dashboard and local publishable key now match |
 | Staging database reachability | Public tables and migrations are available | Project returned `ACTIVE_HEALTHY`; public tables and migration history were readable | PASS | Supabase project and SQL checks |
 | Realtime publication | `city_chat_messages` is in `supabase_realtime` | Table is published | PASS | Read-only publication check |
+| Private Realtime migration | Repository migration restricts authenticated room topics and payload public IDs | Fix implemented; owner migration and live test still required | NOT TESTED LIVE | `202611250001_drip_city_realtime_authorization.sql` |
 | Unit tests | Tests pass | 3 tests passed | PASS | `npm test` |
 | Type check | No TypeScript errors | Passed | PASS | `npm run typecheck` |
 | Production build | Build completes | Completed; bundle-size warnings remain | PASS | `npm run build` |
@@ -27,6 +28,8 @@ In Supabase **Authentication -> URL Configuration**, set:
 - **Site URL:** `http://localhost:5173`
 - **Redirect URLs:** add `http://localhost:5173/**`
 - For a staged deployed origin, add that exact origin followed by `/**`
+- **Email confirmation:** enable if staging sign-up should require verification.
+- **Password recovery:** no password-recovery flow is implemented in the app; do not expose or test one until implemented.
 
 The app sends the current browser origin for email confirmation and uses `detectSessionInUrl`, `persistSession`, and `autoRefreshToken`.
 
