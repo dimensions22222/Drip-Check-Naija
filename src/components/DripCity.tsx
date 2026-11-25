@@ -5,6 +5,7 @@ import { defaultLooks, normalizeLook } from "../avatar/catalog";
 import AvatarRenderer from "../avatar/AvatarRenderer";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "../supabase/client";
+import { dripCityRealtimeTopic, isPermittedRealtimePayload } from "../realtimeSecurity";
 import type { RemoteCityPlayer } from "./PhaserWorld";
 import type {
   CityChatMessage,
@@ -146,6 +147,11 @@ export default function DripCity(props: Props) {
   );
 
   const sendPosition = useCallback((position: { x: number; y: number }) => {
+    if (!isPermittedRealtimePayload({
+      publicId: props.myPublicId,
+      x: position.x,
+      y: position.y,
+    }, props.myPublicId)) return;
     void realtimeChannel.current?.send({
       type: "broadcast",
       event: "position",
@@ -181,8 +187,14 @@ export default function DripCity(props: Props) {
       if (active) setChatError(error instanceof Error ? error.message : "Could not load room chat.");
     });
 
-    const channel = supabase.channel(`drip-city:${roomId}`, {
-      config: { broadcast: { ack: false, self: false }, presence: { key: props.myPublicId } },
+    const topic = dripCityRealtimeTopic(roomId);
+    if (!topic) {
+      setRealtimeStatus("error");
+      setChatError("Invalid Drip City room.");
+      return () => { active = false; };
+    }
+    const channel = supabase.channel(topic, {
+      config: { broadcast: { ack: false, self: false }, presence: { key: props.myPublicId }, private: true },
     });
     realtimeChannel.current = channel;
 
