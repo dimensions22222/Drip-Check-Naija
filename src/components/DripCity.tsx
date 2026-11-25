@@ -147,6 +147,7 @@ export default function DripCity(props: Props) {
   );
 
   const sendPosition = useCallback((position: { x: number; y: number }) => {
+    if (!props.myPublicId) return;
     if (!isPermittedRealtimePayload({
       publicId: props.myPublicId,
       x: position.x,
