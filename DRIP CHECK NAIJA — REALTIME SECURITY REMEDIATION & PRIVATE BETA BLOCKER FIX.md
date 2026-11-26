@@ -226,4 +226,4 @@ CRITICAL:
 Never fabricate successful authentication, two-account testing, Realtime authorization or RLS results. Never expose secrets. Do not weaken authorization to bypass errors. Preserve all existing game features.
 
 
-eeeeee
+eee
