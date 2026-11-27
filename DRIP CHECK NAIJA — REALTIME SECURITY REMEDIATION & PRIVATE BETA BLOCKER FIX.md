@@ -1,196 +1,116 @@
-# DRIP CHECK NAIJA — REALTIME SECURITY REMEDIATION & PRIVATE BETA BLOCKER FIX
+# DRIP CHECK NAIJA — LIVE SUPABASE SECURITY VERIFICATION & MULTIPLAYER ACCEPTANCE
 
-Act as the senior Supabase security engineer and release engineer for DRIP CHECK NAIJA.
-
-Your task is to resolve the outstanding staging security and authentication blockers. Do not add new gameplay features.
+Act as the senior Supabase security engineer and QA lead for DRIP CHECK NAIJA.
 
 ## CURRENT STATUS
 
-Project:
-- Supabase project: projectx
-- Project reference: fmfhadxoqhixcaqpkgos
-- Project status: ACTIVE_HEALTHY
-- Local application: http://localhost:5173
-
-Existing features:
-- Avatar Studio.
-- Fashion Mall and Player Inventory.
-- Fashion Battles foundation.
-- Drip City Phaser world.
-- Player profiles, follows and outfit showcases.
-- XP, missions and achievements.
-- Supabase authentication.
-- Realtime multiplayer Presence and Broadcast.
+The project has:
+- React, TypeScript, Vite and Phaser frontend.
+- Supabase authentication and database.
+- Drip City multiplayer foundation.
+- Realtime Presence and Broadcast.
 - Persisted location-based chat.
 - Player blocking, muting and reporting.
+- Avatar Studio, Fashion Mall, Inventory and progression systems.
 
-Latest verification:
-- npm test: 3 tests passed.
-- npm run typecheck: passed.
-- npm run build: passed.
-- HTTP smoke test: 200.
-- git diff --check: passed.
+Latest security work:
+- Private Realtime configuration added to DripCity.tsx.
+- Room-topic and payload validation added in realtimeSecurity.ts.
+- Realtime security unit tests added.
+- Migration created: 202611250001_drip_city_realtime_authorization.sql.
 
-Current release status: NOT READY.
+Previous verification:
+- 5 tests passed.
+- Typecheck passed.
+- Build passed.
+- git diff --check passed.
+- Local server returned HTTP 200.
 
-Outstanding blockers:
-1. Supabase Auth redirect URLs are not configured or verified.
-2. No real two-account browser test has been completed.
-3. RLS and moderation behavior remain unverified.
-4. Chat authorization remains unverified.
-5. Private Realtime channel authorization remains a release blocker.
+IMPORTANT:
+The migration was previously rejected because the available database role did not own realtime.messages.
+
+The user must apply the migration through Supabase SQL Editor using appropriate owner-level permissions. Do not assume it has been applied.
 
 ## OBJECTIVE
 
-Fix the actual causes of these blockers and prepare a repeatable two-account staging acceptance test.
+Verify the actual staging database after the user applies the migration. Resolve remaining authorization issues and perform real multiplayer acceptance testing.
 
-Inspect the existing implementation before making changes.
+## 1. VERIFY THE MIGRATION
 
-Do not replace working systems or introduce a new architecture unnecessarily.
+Inspect 202611250001_drip_city_realtime_authorization.sql.
 
-## 1. PRIVATE REALTIME CHANNEL SECURITY — TOP PRIORITY
+Verify:
+- The migration exists.
+- The intended SQL was applied.
+- Required policies exist.
+- Required grants are correct.
+- Private Realtime authorization is enforced.
+- Existing policies were not accidentally weakened.
+- The migration is recorded as applied where supported.
 
-Inspect:
-- Realtime channel creation.
-- Presence subscriptions.
-- Broadcast subscriptions.
-- Private channel configuration.
-- Channel topic naming.
-- Supabase Realtime authorization policies.
-- Database grants.
-- RLS policies.
-- Authentication state handling.
+Use read-only SQL checks where possible.
 
-Determine which channels must be private and which can safely be public.
+Do not reapply the migration blindly.
 
-For protected city rooms:
-- Require authenticated users.
-- Validate room membership.
-- Prevent unauthorized location access.
-- Prevent channel impersonation.
-- Prevent users from joining restricted rooms.
-- Ensure movement messages cannot impersonate another player.
-- Ensure presence payloads contain only permitted public information.
-- Ensure subscriptions are cleaned up when users leave.
+If the migration was not applied, explain why and provide a safe recovery procedure.
 
-Inspect whether the client correctly requests private channels and whether the server-side authorization policies actually enforce access.
-
-Do not assume that enabling private channels in frontend code is sufficient.
-
-Create or update SQL migrations where required.
-
-Do not weaken security to make connections work.
-
-## 2. AUTHENTICATION AND REDIRECT CONFIGURATION
-
-Inspect the current authentication implementation.
-
-Prepare exact Supabase dashboard settings for:
-- Site URL.
-- Local development redirect.
-- Staging redirect.
-- Email confirmation.
-- Password recovery redirect, if implemented.
-
-Support:
-- Sign-up.
-- Email confirmation.
-- Sign-in.
-- Sign-out.
-- Session restoration.
-- Expired sessions.
-
-If dashboard access is unavailable, provide precise manual instructions.
-
-Do not claim the dashboard settings were changed unless actually changed and verified.
-
-## 3. TWO-ACCOUNT MULTIPLAYER ACCEPTANCE TEST
-
-Prepare a repeatable test using two genuinely separate accounts.
-
-Account A and Account B must have independent authenticated sessions.
+## 2. PRIVATE REALTIME AUTHORIZATION
 
 Test:
-1. Both accounts sign in.
-2. Both enter Drip City.
-3. Both join the same location.
-4. Both see the other player's presence.
-5. Account A moves and Account B sees the movement.
-6. Account B moves and Account A sees the movement.
-7. Both exchange persisted chat messages.
-8. Switch one account to a different location.
-9. Verify room isolation.
-10. Test disconnect and reconnect.
+- Authenticated users can join permitted rooms.
+- Unauthenticated users cannot join protected rooms.
+- Unauthorized users cannot subscribe to another restricted room.
+- Room topics are validated.
+- Presence payloads cannot impersonate other players.
+- Movement broadcasts are validated.
+- Disconnecting users leave no stale presence.
+
+Inspect both frontend configuration and actual server-side authorization.
+
+## 3. TWO-ACCOUNT MULTIPLAYER TEST
+
+Use two genuinely separate authenticated accounts and independent browser sessions.
+
+Test:
+1. Sign in as Account A.
+2. Sign in as Account B in a separate browser profile.
+3. Enter the same Drip City location.
+4. Confirm both players see each other.
+5. Move Account A and verify movement on Account B.
+6. Move Account B and verify movement on Account A.
+7. Exchange chat messages.
+8. Switch one account to another location.
+9. Verify location isolation.
+10. Disconnect and reconnect.
 11. Test blocking and muting.
-12. Verify that unauthorized channel access is rejected.
 
-Use browser automation if available.
+Do not use fabricated accounts or mocked presence as proof of live multiplayer.
 
-If you cannot control two browser sessions, provide exact manual steps and mark the tests NOT TESTED.
+If browser access is unavailable, provide precise manual instructions and mark the tests NOT TESTED.
 
-Do not create fake accounts or pretend a second session is authenticated.
+## 4. DATABASE SECURITY TESTING
 
-## 4. RLS AND RPC SECURITY
+Test with both accounts:
+- Private profile access.
+- Outfit ownership.
+- Inventory ownership.
+- Social interactions.
+- Progression updates.
+- Chat permissions.
+- Report privacy.
+- Unauthorized RPC calls.
 
-Inspect actual policies and test real authorization behavior.
+Verify that one account cannot modify another account's private data.
 
-Verify:
-- Private profiles remain private.
-- Users cannot modify another user's outfits.
-- Users cannot grant themselves inventory.
-- Users cannot modify their own XP or reward claims.
-- Users cannot edit another user's messages.
-- Users cannot read another user's private reports.
-- Users cannot impersonate other players.
-- Unauthorized RPC calls are rejected.
+## 5. FIX CONFIRMED ISSUES
 
-Use separate authenticated accounts for cross-user access tests where possible.
+Fix confirmed vulnerabilities without weakening RLS or Realtime authorization.
 
-Fix confirmed vulnerabilities.
+Do not introduce unnecessary migrations.
 
-## 5. CHAT AND MODERATION
+Document any required dashboard configuration.
 
-Verify:
-- Authenticated message submission.
-- Message length limits.
-- Rate limiting.
-- Room membership validation.
-- Message persistence.
-- Message ownership.
-- Blocking behavior.
-- Muting behavior.
-- Report submission privacy.
-
-Ensure moderation actions cannot be forged from browser requests.
-
-Document any limitations.
-
-## 6. SECURITY TESTS
-
-Add automated tests where practical for:
-- Channel authorization logic.
-- Room membership.
-- Message validation.
-- Presence payload validation.
-- Reconnection.
-- Unauthorized operations.
-- RLS and RPC behavior.
-
-Do not replace live integration tests with mocks and describe them as real Supabase security verification.
-
-## 7. DOCUMENTATION
-
-Update:
-- docs/STAGING_ACCEPTANCE_TESTS.md
-- docs/STAGING_SECURITY_RESULTS.md
-- docs/PRIVATE_BETA_READINESS.md
-- docs/SUPABASE_SETUP.md
-
-Include exact dashboard settings, SQL changes, test procedures and results.
-
-Never include passwords, tokens, service-role keys or private account data.
-
-## 8. FINAL VALIDATION
+## 6. AUTOMATED VALIDATION
 
 Run:
 - npm test
@@ -198,31 +118,40 @@ Run:
 - npm run build
 - git diff --check
 
-Confirm that the app still works at http://localhost:5173.
+Keep existing tests and add useful regression tests.
 
-Do not deploy publicly.
+Do not substitute mocks for live security testing.
 
-## 9. FINAL REPORT
+## 7. DOCUMENTATION
+
+Update:
+- docs/STAGING_ACCEPTANCE_TESTS.md
+- docs/STAGING_SECURITY_RESULTS.md
+- docs/PRIVATE_BETA_READINESS.md
+
+Record actual evidence and distinguish:
+- PASS
+- FAIL
+- NOT TESTED
+
+## 8. FINAL REPORT
 
 Report:
-1. Private Realtime authorization findings.
-2. Security fixes applied.
-3. Migrations created or modified.
-4. Authentication configuration status.
-5. RLS and RPC test results.
-6. Two-account test results.
-7. Chat and moderation results.
-8. Build and test results.
-9. Manual dashboard actions remaining.
-10. Updated private beta readiness status.
+1. Whether the migration was successfully applied.
+2. Whether private Realtime authorization works.
+3. Two-account multiplayer results.
+4. Chat and room isolation results.
+5. RLS and RPC security results.
+6. Bugs fixed.
+7. Automated test results.
+8. Remaining manual configuration.
+9. Private beta readiness.
 
-Use:
+Use only these statuses:
 - NOT READY
 - SECURITY FIXES IMPLEMENTED — TESTING REQUIRED
 - STAGING VALIDATED
 - READY FOR PRIVATE BETA
 
 CRITICAL:
-Never fabricate successful authentication, two-account testing, Realtime authorization or RLS results. Never expose secrets. Do not weaken authorization to bypass errors. Preserve all existing game features.
-
-
+Never invent test results. Never weaken security to bypass permission errors. Never expose credentials. Preserve all existing game features.
