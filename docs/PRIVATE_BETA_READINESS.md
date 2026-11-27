@@ -41,6 +41,15 @@ This assessment is evidence-based. The repository is locally buildable, but live
 5. Mobile, reconnect, and real-network multiplayer behavior are not verified.
 6. Staging deployment is not connected or published.
 
+## Verified live staging facts
+
+- `projectx` / `fmfhadxoqhixcaqpkgos` is `ACTIVE_HEALTHY`.
+- The local app loads and the staging URL/publishable key are injected into Vite.
+- `public.city_chat_messages` is published to Realtime.
+- `202611250001_drip_city_realtime_authorization` is not recorded as applied.
+- No `realtime.messages` RLS policies were found.
+- The signed-out browser is in demo state by design.
+
 ## Security concerns
 
 - The browser receives only the project URL and anon/publishable key.

@@ -18,7 +18,9 @@ No secrets or test credentials are recorded here.
 | Browser key | Publishable key format; no secret key | PASS |
 | Key exact match | Dashboard publishable key differed in case from `.env.local`; corrected | PASS after fix |
 | Realtime publication | `public.city_chat_messages` is in `supabase_realtime` | PASS |
-| Repository migrations | Realtime and migration history visible in the staging database | PASS |
+| Private Realtime migration record | Migration `202611250001_drip_city_realtime_authorization` absent | FAIL / NOT APPLIED |
+| `realtime.messages` policies | No matching Drip City policies found | FAIL / NOT APPLIED |
+| Browser entry point | Local app loaded; no live session | PASS for HTTP/UI, NOT TESTED for Auth |
 
 ## Security findings
 
@@ -26,10 +28,14 @@ No secrets or test credentials are recorded here.
 
 - **Severity:** Release blocker
 - **Result:** SECURITY FIXES IMPLEMENTED — TESTING REQUIRED
-- **Evidence:** Drip City now requests `private: true` and the repository migration allowlists protected room topics. A staging migration attempt was rejected because the available database role does not own `realtime.messages`.
+- **Evidence:** Drip City now requests `private: true` and the repository migration allowlists protected room topics. Read-only staging checks found no migration record and no `realtime.messages` policies.
 - **Impact:** Direct SDK users may attempt to subscribe or broadcast on known room topic names if channel access is not otherwise restricted.
 - **Fix applied:** Added private-channel client configuration and `202611250001_drip_city_realtime_authorization.sql`.
 - **Required owner action:** Apply the migration in the Supabase SQL editor under an owner role, then disable public Realtime access in project settings.
+
+## Supabase security advisor
+
+The live security advisor reported 14 signed-in `SECURITY DEFINER` function findings. These functions are part of the trusted progression, social, chat, moderation, and avatar RPC design. They remain warnings until live RPC behavior and function privilege boundaries are verified; they are not treated as confirmed vulnerabilities.
 
 ### Chat and moderation SQL exists but is untested live
 

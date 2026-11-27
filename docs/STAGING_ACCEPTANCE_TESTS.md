@@ -15,8 +15,9 @@ No real test accounts or browser sessions were available during this validation 
 | Key matches dashboard | Exact dashboard key is bundled locally | Initial key mismatch was found and corrected | PASS after fix | Dashboard and local publishable key now match |
 | Staging database reachability | Public tables and migrations are available | Project returned `ACTIVE_HEALTHY`; public tables and migration history were readable | PASS | Supabase project and SQL checks |
 | Realtime publication | `city_chat_messages` is in `supabase_realtime` | Table is published | PASS | Read-only publication check |
-| Private Realtime migration | Repository migration restricts authenticated room topics and payload public IDs | Fix implemented; owner migration and live test still required | NOT TESTED LIVE | `202611250001_drip_city_realtime_authorization.sql` |
-| Unit tests | Tests pass | 3 tests passed | PASS | `npm test` |
+| Private Realtime migration | Migration file restricts authenticated room topics and payload public IDs | Migration exists, but no migration record or `realtime.messages` policies were found in staging | FAIL / NOT APPLIED | Read-only migration and `pg_policies` checks |
+| Browser entry point | App loads from the local Vite server | Verified home page in the integrated browser; header correctly shows signed-out demo state | PASS | HTTP 200 and browser snapshot |
+| Unit tests | Tests pass | 5 tests passed | PASS | `npm test` |
 | Type check | No TypeScript errors | Passed | PASS | `npm run typecheck` |
 | Production build | Build completes | Completed; bundle-size warnings remain | PASS | `npm run build` |
 | Diff whitespace | No whitespace errors | Passed | PASS | `git diff --check` |
@@ -32,6 +33,29 @@ In Supabase **Authentication -> URL Configuration**, set:
 - **Password recovery:** no password-recovery flow is implemented in the app; do not expose or test one until implemented.
 
 The app sends the current browser origin for email confirmation and uses `detectSessionInUrl`, `persistSession`, and `autoRefreshToken`.
+
+## Live staging verification performed
+
+The live project was read-only checked on 2026-11-27:
+
+- Project `projectx` / `fmfhadxoqhixcaqpkgos` is `ACTIVE_HEALTHY`.
+- The local Vite client loads the exact staging URL and publishable key.
+- `public.city_chat_messages` is published to `supabase_realtime`.
+- Migration `202611250001_drip_city_realtime_authorization` is absent from `supabase_migrations.schema_migrations`.
+- No policies exist for `realtime.messages`.
+- No real authenticated browser session was available, so no account, presence, movement, chat, RLS, or moderation result is claimed.
+
+## Owner recovery procedure for the private Realtime migration
+
+Do not rerun database commands through a role that is not the owner of `realtime.messages`.
+
+1. Open Supabase Dashboard -> SQL Editor for `projectx`.
+2. Run the complete contents of `202611250001_drip_city_realtime_authorization.sql`.
+3. Confirm the migration in migration history by applying it with the dashboard migration workflow or repository migration tooling using an owner role.
+4. Run:
+   `select count(*) from pg_policies where schemaname='realtime' and tablename='messages';`
+5. Confirm both `drip city authenticated receive realtime` and `drip city authenticated send realtime` exist.
+6. Disable public Realtime access in project Realtime settings if the dashboard exposes that switch.
 
 ## Authentication test cases
 
